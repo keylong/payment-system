@@ -60,8 +60,8 @@ async function ensureDbExists() {
     const defaultMerchant = {
       id: 'default',
       name: '默认商户',
-      callbackUrl: process.env.MERCHANT_CALLBACK_URL || 'http://localhost:3001/callback',
-      apiKey: process.env.MERCHANT_API_KEY || 'test-api-key-123456',
+      callbackUrl: 'http://localhost:3001/callback',
+      apiKey: 'legacy-backup-key-12345678',
       createdAt: new Date().toISOString()
     };
     await fs.writeFile(MERCHANTS_FILE, JSON.stringify([defaultMerchant]), 'utf-8');

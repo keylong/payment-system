@@ -3,8 +3,8 @@
 import http from 'http';
 
 // 配置
-const WEBHOOK_URL = 'http://localhost:3000/webhook';
-const API_KEY = '34073969';
+const WEBHOOK_URL = process.env.WEBHOOK_URL || 'http://localhost:3008/webhook';
+const API_KEY = '15651651'; // 使用数据库中的API密钥
 
 function sendSimpleRequest(testType = 'valid') {
   console.log(`\n=== 发送${testType}测试请求 ===`);

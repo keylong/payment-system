@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
     // API密钥验证
     try {
-      validateApiKey(request);
+      await validateApiKey(request);
     } catch (error) {
       if (error instanceof AuthError) {
         return NextResponse.json(

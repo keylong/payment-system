@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Toast, { ToastType } from './Toast';
 
 interface ToastMessage {
@@ -22,6 +23,11 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const removeToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(toast => toast.id !== id));
@@ -50,22 +56,39 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     showToast(message, 'warning', duration || 4000);
   }, [showToast]);
 
+  const toastContainer = mounted && typeof window !== 'undefined' ? createPortal(
+    <div 
+      className="toast-container"
+      style={{ 
+        position: 'fixed',
+        top: '16px',
+        right: '16px',
+        zIndex: 2147483647,
+        maxWidth: '400px',
+        pointerEvents: 'none'
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {toasts.map(toast => (
+          <div key={toast.id} style={{ pointerEvents: 'auto' }}>
+            <Toast
+              id={toast.id}
+              type={toast.type}
+              message={toast.message}
+              duration={toast.duration}
+              onClose={removeToast}
+            />
+          </div>
+        ))}
+      </div>
+    </div>,
+    document.body
+  ) : null;
+
   return (
     <ToastContext.Provider value={{ showToast, success, error, info, warning }}>
       {children}
-      {/* Toast容器 */}
-      <div className="fixed top-4 right-4 z-50 space-y-2">
-        {toasts.map(toast => (
-          <Toast
-            key={toast.id}
-            id={toast.id}
-            type={toast.type}
-            message={toast.message}
-            duration={toast.duration}
-            onClose={removeToast}
-          />
-        ))}
-      </div>
+      {toastContainer}
     </ToastContext.Provider>
   );
 }

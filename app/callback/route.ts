@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { getConfig } from '@/lib/system-config';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     // 验证签名
     const { signature, ...data } = body;
-    const apiKey = process.env.MERCHANT_API_KEY || 'test-api-key-123456';
+    const apiKey = await getConfig('merchant.api_key') || 'test-api-key-123456';
     
     // 按字母顺序排序键并构建签名字符串
     const sortedKeys = Object.keys(data).sort();

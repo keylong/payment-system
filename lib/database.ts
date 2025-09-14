@@ -23,6 +23,7 @@ import {
   getUnmatchedPayments as dbGetUnmatchedPayments,
   confirmPaymentMatch as dbConfirmPaymentMatch,
   getPaymentStatistics as dbGetPaymentStatistics,
+  getDemoOrdersWithPaymentInfo as dbGetDemoOrdersWithPaymentInfo,
 } from './db-operations';
 
 // 保持原来的接口类型定义
@@ -164,6 +165,26 @@ export async function getDemoOrders(): Promise<DemoOrder[]> {
     status: r.status as 'pending' | 'success' | 'failed' | 'expired',
     paymentId: r.paymentId ?? undefined,
     customerInfo: r.customerInfo ?? undefined
+  }));
+}
+
+export interface DemoOrderWithPaymentInfo extends DemoOrder {
+  callbackStatus?: string;
+  callbackUrl?: string;
+}
+
+export async function getDemoOrdersWithPaymentInfo(): Promise<DemoOrderWithPaymentInfo[]> {
+  const results = await dbGetDemoOrdersWithPaymentInfo();
+  return results.map(r => ({
+    ...r,
+    createdAt: new Date(r.createdAt),
+    expiresAt: new Date(r.expiresAt),
+    paymentMethod: r.paymentMethod as 'alipay' | 'wechat',
+    status: r.status as 'pending' | 'success' | 'failed' | 'expired',
+    paymentId: r.paymentId ?? undefined,
+    customerInfo: r.customerInfo ?? undefined,
+    callbackStatus: r.callbackStatus ?? undefined,
+    callbackUrl: r.callbackUrl ?? undefined
   }));
 }
 

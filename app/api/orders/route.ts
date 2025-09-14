@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { saveOrder, getOrders, getOrderById, updateOrder } from '@/lib/database';
+import { saveOrder, getOrders, getOrderById, updateOrder, getDemoOrdersWithPaymentInfo } from '@/lib/database';
 import { createPendingOrder } from '@/lib/payment-matcher';
 import type { DemoOrder } from '@/lib/database';
 
@@ -88,8 +88,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(order);
     }
     
-    // 获取所有订单
-    const orders = await getOrders();
+    // 获取包含回调信息的所有订单
+    const orders = await getDemoOrdersWithPaymentInfo();
     
     return NextResponse.json({
       orders: orders.slice(0, 50), // 只返回最新50条

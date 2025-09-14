@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { formatAmount } from '@/lib/parser';
 import { formatShanghaiTime } from '@/lib/timezone';
 import dynamic from 'next/dynamic';
 import { useToast } from '@/components/ToastProvider';
+import { isAuthenticated, logout, getAuthState } from '@/lib/client-auth';
 
 const QRCodeManager = dynamic(() => import('@/components/QRCodeManager'), { ssr: false });
+const SystemConfigManager = dynamic(() => import('@/components/SystemConfigManager'), { ssr: false });
 
 interface PaymentRecord {
   id: string;
@@ -31,6 +34,8 @@ interface Order {
   createdAt: string;
   paidAt?: string;
   paymentId?: string;
+  callbackStatus?: string;
+  callbackUrl?: string;
 }
 
 interface UnmatchedPayment {
@@ -42,25 +47,36 @@ interface UnmatchedPayment {
 }
 
 interface Statistics {
-  total: number;
-  todayCount: number;
+  // 今日统计
+  todayPayments: number;
   todayAmount: number;
+  todayOrders: number;
+  
+  // 总统计
+  totalPayments: number;
   totalAmount: number;
-  successCount: number;
-  failedCount: number;
-  pendingCallbacks: number;
+  totalOrders: number;
+  
+  // 订单状态统计
+  pendingOrders: number;
+  successOrders: number;
+  expiredOrders: number;
+  failedOrders: number;
+  
+  // 待匹配支付
+  unmatchedPayments: number;
+  
+  // 成功率
+  successRate: string;
 }
 
-interface MerchantConfig {
-  callbackUrl: string;
-  apiKey: string;
-}
 
 const ITEMS_PER_PAGE = 20;
 
-type TabType = 'orders' | 'unmatched' | 'payments' | 'qrcode' | 'config';
+type TabType = 'orders' | 'unmatched' | 'payments' | 'qrcode' | 'system-config';
 
 export default function Home() {
+  const router = useRouter();
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<TabType>('orders');
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
@@ -68,14 +84,12 @@ export default function Home() {
   const [unmatchedPayments, setUnmatchedPayments] = useState<UnmatchedPayment[]>([]);
   const [stats, setStats] = useState<Statistics | null>(null);
   const [loading, setLoading] = useState(true);
-  const [merchantConfig, setMerchantConfig] = useState<MerchantConfig>({
-    callbackUrl: '',
-    apiKey: ''
-  });
+  const [authLoading, setAuthLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshInterval, setRefreshInterval] = useState(10000);
+  const [userInfo, setUserInfo] = useState<{ username?: string }>({});
 
   // 分页数据
   const paginatedPayments = payments.slice(
@@ -88,12 +102,39 @@ export default function Home() {
     currentPage * ITEMS_PER_PAGE
   );
 
+  // 认证检查
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (!isAuthenticated()) {
+        router.replace('/login');
+        return;
+      }
+      
+      const authState = getAuthState();
+      setUserInfo({ username: authState.username });
+      setAuthLoading(false);
+    };
+    
+    checkAuth();
+  }, [router]);
+
+  // 退出登录
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.replace('/login');
+    } catch (error) {
+      console.error('登出失败:', error);
+      // 即使API失败，也要跳转到登录页
+      router.replace('/login');
+    }
+  };
+
   const fetchData = useCallback(async () => {
     try {
-      const [paymentsRes, statsRes, configRes, ordersRes, unmatchedRes] = await Promise.all([
+      const [paymentsRes, statsRes, ordersRes, unmatchedRes] = await Promise.all([
         fetch('/api/payments'),
         fetch('/api/statistics'),
-        fetch('/api/config'),
         fetch('/api/orders'),
         fetch('/api/unmatched-payments')
       ]);
@@ -126,10 +167,6 @@ export default function Home() {
         setStats(data);
       }
 
-      if (configRes.ok) {
-        const data = await configRes.json();
-        setMerchantConfig(data);
-      }
     } catch (error) {
       console.error('获取数据失败:', error);
     } finally {
@@ -157,23 +194,6 @@ export default function Home() {
     }
   }, [activeTab, orders.length, payments.length]);
 
-  const saveConfig = async () => {
-    try {
-      const res = await fetch('/api/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(merchantConfig)
-      });
-
-      if (res.ok) {
-        toast.success('配置保存成功');
-      } else {
-        toast.error('保存失败');
-      }
-    } catch {
-      toast.error('保存出错，请重试');
-    }
-  };
 
   const confirmMatch = async (paymentId: string, orderId: string) => {
     try {
@@ -215,31 +235,53 @@ export default function Home() {
   const retryCallback = async (orderId: string) => {
     try {
       const order = orders.find(o => o.orderId === orderId);
-      if (!order || !order.paymentId) {
-        toast.warning('订单未支付或无支付记录');
+      if (!order) {
+        toast.error('找不到订单');
         return;
       }
 
-      const payment = payments.find(p => p.id === order.paymentId);
-      if (!payment) {
-        toast.error('找不到支付记录');
-        return;
-      }
-
-      const res = await fetch('/api/retry-callbacks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentIds: [payment.id] })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success > 0) {
-          toast.success(`回调完成: ${data.success} 个成功${data.failed > 0 ? `, ${data.failed} 个失败` : ''}`);
-        } else {
-          toast.error(`回调失败: ${data.failed} 个失败`);
+      // 如果订单有支付记录，使用现有的逻辑
+      if (order.paymentId) {
+        const payment = payments.find(p => p.id === order.paymentId);
+        if (!payment) {
+          toast.error('找不到支付记录');
+          return;
         }
-        fetchData();
+
+        const res = await fetch('/api/retry-callbacks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentIds: [payment.id] })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success > 0) {
+            toast.success(`回调完成: ${data.success} 个成功${data.failed > 0 ? `, ${data.failed} 个失败` : ''}`);
+          } else {
+            toast.error(`回调失败: ${data.failed} 个失败`);
+          }
+          fetchData();
+        }
+      } else {
+        // 如果没有支付记录，创建一个虚拟的回调请求
+        const res = await fetch('/api/retry-callbacks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            orderId: orderId,
+            forceCallback: true 
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          toast.success('强制回调已发送');
+          fetchData();
+        } else {
+          const errorData = await res.json();
+          toast.error(errorData.error || '回调失败');
+        }
       }
     } catch {
       toast.error('重试失败，请稍后再试');
@@ -307,10 +349,19 @@ ${new Date().toISOString()}`
   const pendingOrders = orders.filter(o => o.status === 'pending');
   const completedOrders = orders.filter(o => o.status === 'success');
 
+  // 认证检查中或数据加载中
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-xl text-gray-600">检查登录状态...</div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">加载中...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-xl text-gray-600">加载中...</div>
       </div>
     );
   }
@@ -320,8 +371,21 @@ ${new Date().toISOString()}`
       <div className="max-w-7xl mx-auto">
         {/* 头部 */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 space-y-4 sm:space-y-0">
-          <h1 className="text-2xl sm:text-3xl font-bold">收款系统管理后台</h1>
+          <div className="flex flex-col">
+            <h1 className="text-2xl sm:text-3xl font-bold">收款系统管理后台</h1>
+            {userInfo.username && (
+              <p className="text-sm text-gray-600 mt-1">
+                欢迎，{userInfo.username}
+              </p>
+            )}
+          </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+            <button
+              onClick={handleLogout}
+              className="px-3 py-2 text-sm sm:px-4 sm:text-base bg-red-600 text-white rounded hover:bg-red-700 whitespace-nowrap"
+            >
+              退出登录
+            </button>
             <a
               href="/demo"
               className="px-3 py-2 text-sm sm:px-4 sm:text-base bg-purple-600 text-white rounded hover:bg-purple-700 whitespace-nowrap"
@@ -375,16 +439,16 @@ ${new Date().toISOString()}`
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-6 sm:mb-8">
             <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
               <h3 className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2">待支付订单</h3>
-              <p className="text-lg sm:text-2xl font-bold text-yellow-600">{pendingOrders.length}</p>
+              <p className="text-lg sm:text-2xl font-bold text-yellow-600">{stats.pendingOrders || 0}</p>
             </div>
             <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
               <h3 className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2">已完成订单</h3>
-              <p className="text-lg sm:text-2xl font-bold text-green-600">{completedOrders.length}</p>
+              <p className="text-lg sm:text-2xl font-bold text-green-600">{stats.successOrders || 0}</p>
             </div>
             <div className="bg-white p-3 sm:p-4 rounded-lg shadow relative">
               <h3 className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2">待确认支付</h3>
-              <p className="text-lg sm:text-2xl font-bold text-orange-600">{unmatchedPayments.length}</p>
-              {unmatchedPayments.length > 0 && (
+              <p className="text-lg sm:text-2xl font-bold text-orange-600">{stats.unmatchedPayments || 0}</p>
+              {(stats.unmatchedPayments || 0) > 0 && (
                 <span className="absolute top-2 right-2 flex h-2 w-2 sm:h-3 sm:w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 sm:h-3 sm:w-3 bg-orange-500"></span>
@@ -393,15 +457,15 @@ ${new Date().toISOString()}`
             </div>
             <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
               <h3 className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2">今日订单</h3>
-              <p className="text-lg sm:text-2xl font-bold">{stats.todayCount}</p>
+              <p className="text-lg sm:text-2xl font-bold">{stats.todayOrders || 0}</p>
             </div>
             <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
               <h3 className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2">今日金额</h3>
-              <p className="text-lg sm:text-2xl font-bold">{formatAmount(stats.todayAmount)}</p>
+              <p className="text-lg sm:text-2xl font-bold">{formatAmount(stats.todayAmount || 0)}</p>
             </div>
             <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
               <h3 className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2">总金额</h3>
-              <p className="text-lg sm:text-2xl font-bold">{formatAmount(stats.totalAmount)}</p>
+              <p className="text-lg sm:text-2xl font-bold">{formatAmount(stats.totalAmount || 0)}</p>
             </div>
           </div>
         )}
@@ -430,9 +494,9 @@ ${new Date().toISOString()}`
                 }`}
               >
                 待确认
-                {unmatchedPayments.length > 0 && (
+                {(stats?.unmatchedPayments || 0) > 0 && (
                   <span className="ml-1 sm:ml-2 inline-flex items-center justify-center px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs font-bold leading-none text-white bg-orange-500 rounded-full">
-                    {unmatchedPayments.length}
+                    {stats.unmatchedPayments}
                   </span>
                 )}
               </button>
@@ -457,14 +521,14 @@ ${new Date().toISOString()}`
                 二维码管理
               </button>
               <button
-                onClick={() => setActiveTab('config')}
+                onClick={() => setActiveTab('system-config')}
                 className={`py-3 px-4 sm:px-6 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
-                  activeTab === 'config'
+                  activeTab === 'system-config'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
-                系统配置
+                系统设置
               </button>
             </nav>
           </div>
@@ -522,6 +586,19 @@ ${new Date().toISOString()}`
                       <div className="text-xs text-gray-500 mt-2">
                         {formatShanghaiTime(new Date(order.createdAt))}
                       </div>
+                      {order.status === 'success' && order.callbackStatus && (
+                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200">
+                          <span className="text-xs text-gray-500">回调状态:</span>
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            order.callbackStatus === 'sent' ? 'bg-green-100 text-green-800' : 
+                            order.callbackStatus === 'failed' ? 'bg-red-100 text-red-800' :
+                            'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {order.callbackStatus === 'sent' ? '已发送' : 
+                             order.callbackStatus === 'failed' ? '发送失败' : '待发送'}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -537,6 +614,7 @@ ${new Date().toISOString()}`
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">实际金额</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">支付方式</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">回调状态</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">创建时间</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
                       </tr>
@@ -571,6 +649,20 @@ ${new Date().toISOString()}`
                               {order.status === 'pending' ? '待支付' : 
                                order.status === 'success' ? '已支付' : '失败'}
                             </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {order.status === 'success' && order.callbackStatus ? (
+                              <span className={`px-2 py-1 rounded text-xs ${
+                                order.callbackStatus === 'sent' ? 'bg-green-100 text-green-800' : 
+                                order.callbackStatus === 'failed' ? 'bg-red-100 text-red-800' :
+                                'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {order.callbackStatus === 'sent' ? '已发送' : 
+                                 order.callbackStatus === 'failed' ? '发送失败' : '待发送'}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-500">
                             {formatShanghaiTime(new Date(order.createdAt))}
@@ -858,55 +950,11 @@ ${new Date().toISOString()}`
               </div>
             )}
 
-            {/* 系统配置 Tab - 移动端优化 */}
-            {activeTab === 'config' && (
-              <div className="max-w-2xl">
-                <div className="space-y-4 sm:space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">回调URL</label>
-                    <input
-                      type="text"
-                      value={merchantConfig.callbackUrl}
-                      onChange={(e) => setMerchantConfig({...merchantConfig, callbackUrl: e.target.value})}
-                      className="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="http://your-server.com/callback"
-                    />
-                    <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                      支付成功后系统会向此URL发送通知
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">API密钥</label>
-                    <input
-                      type="text"
-                      value={merchantConfig.apiKey}
-                      onChange={(e) => setMerchantConfig({...merchantConfig, apiKey: e.target.value})}
-                      className="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="your-api-key"
-                    />
-                    <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                      用于签名验证，确保数据安全
-                    </p>
-                  </div>
-                  <button
-                    onClick={saveConfig}
-                    className="w-full sm:w-auto px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium"
-                  >
-                    保存配置
-                  </button>
-                </div>
 
-                {/* 系统说明 - 移动端优化 */}
-                <div className="mt-6 sm:mt-8 bg-blue-50 rounded-lg p-3 sm:p-4">
-                  <h4 className="font-semibold text-blue-800 mb-2 text-sm sm:text-base">💡 系统使用说明</h4>
-                  <ul className="space-y-1 text-xs sm:text-sm text-blue-700">
-                    <li>• 智能检测金额冲突，只在需要时添加叠数小额（11、22、33等）</li>
-                    <li>• 叠数设计便于用户输入，如 10.22、10.33、10.44</li>
-                    <li>• 收到支付通知后，系统自动根据金额匹配对应订单</li>
-                    <li>• 如果有多个相同金额的订单，需要手动确认匹配</li>
-                    <li>• 支付记录仅供查看，订单状态在订单管理中调整</li>
-                  </ul>
-                </div>
+            {/* 系统设置 Tab */}
+            {activeTab === 'system-config' && (
+              <div>
+                <SystemConfigManager />
               </div>
             )}
           </div>

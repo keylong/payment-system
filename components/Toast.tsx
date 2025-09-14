@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
@@ -37,40 +37,63 @@ const icons = {
 };
 
 const styles = {
-  success: 'bg-green-50 text-green-800 border-green-200',
-  error: 'bg-red-50 text-red-800 border-red-200',
-  info: 'bg-blue-50 text-blue-800 border-blue-200',
-  warning: 'bg-yellow-50 text-yellow-800 border-yellow-200'
+  success: 'bg-green-50 text-green-800 border-green-200 shadow-green-100',
+  error: 'bg-red-50 text-red-800 border-red-200 shadow-red-100',
+  info: 'bg-blue-50 text-blue-800 border-blue-200 shadow-blue-100',
+  warning: 'bg-yellow-50 text-yellow-800 border-yellow-200 shadow-yellow-100'
+};
+
+const iconColors = {
+  success: 'text-green-600',
+  error: 'text-red-600',
+  info: 'text-blue-600',
+  warning: 'text-yellow-600'
 };
 
 export default function Toast({ id, type, message, duration = 3000, onClose }: ToastProps) {
+  const [isExiting, setIsExiting] = useState(false);
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      onClose(id);
+      setIsExiting(true);
+      setTimeout(() => onClose(id), 300);
     }, duration);
 
     return () => clearTimeout(timer);
   }, [id, duration, onClose]);
 
+  const handleClose = () => {
+    setIsExiting(true);
+    setTimeout(() => onClose(id), 300);
+  };
+
   const content = (
     <div
       className={`
-        flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border
-        transform transition-all duration-300 animate-slide-in
+        flex items-center gap-3 px-4 py-3 rounded-lg border
+        transform transition-all duration-300 backdrop-blur-sm
+        ${isExiting ? 'animate-slide-out' : 'animate-slide-in'}
         ${styles[type]}
+        shadow-lg hover:shadow-xl
+        border-l-4 max-w-sm min-w-72
       `}
+      style={{
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+      }}
     >
-      <div className="flex-shrink-0">
+      <div className={`flex-shrink-0 ${iconColors[type]}`}>
         {icons[type]}
       </div>
-      <div className="flex-1 text-sm font-medium">
+      <div className="flex-1 text-sm font-medium leading-5">
         {message}
       </div>
       <button
-        onClick={() => onClose(id)}
-        className="flex-shrink-0 ml-2 hover:opacity-75 transition-opacity"
+        onClick={handleClose}
+        className="flex-shrink-0 ml-2 p-1 rounded-full hover:bg-black/5 transition-colors group"
+        aria-label="关闭通知"
       >
-        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+        <svg className="w-4 h-4 group-hover:opacity-75 transition-opacity" fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
         </svg>
       </button>
@@ -80,5 +103,5 @@ export default function Toast({ id, type, message, duration = 3000, onClose }: T
   // 确保在客户端渲染
   if (typeof window === 'undefined') return null;
 
-  return createPortal(content, document.body);
+  return content;
 }

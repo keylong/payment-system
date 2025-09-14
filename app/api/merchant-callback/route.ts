@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateMerchantCallback } from '@/lib/merchant-crypto';
+import { getConfig } from '@/lib/system-config';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,8 +16,8 @@ export async function POST(request: NextRequest) {
     console.log('[商户回调验证] 请求体:', body);
     console.log('[商户回调验证] 请求头:', headers);
     
-    // 从环境变量获取商户API密钥
-    const merchantApiKey = process.env.MERCHANT_API_KEY;
+    // 从数据库配置获取商户API密钥
+    const merchantApiKey = await getConfig('merchant.api_key');
     if (!merchantApiKey) {
       return NextResponse.json(
         { error: '服务器未配置商户API密钥' },

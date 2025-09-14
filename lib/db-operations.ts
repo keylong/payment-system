@@ -58,6 +58,30 @@ export async function getDemoOrders(): Promise<DemoOrder[]> {
   return await db.select().from(demoOrders).orderBy(desc(demoOrders.createdAt));
 }
 
+// 获取订单及其关联的支付信息（包含回调状态）
+export async function getDemoOrdersWithPaymentInfo(): Promise<(DemoOrder & { callbackStatus?: string, callbackUrl?: string })[]> {
+  const ordersResult = await db
+    .select({
+      orderId: demoOrders.orderId,
+      productName: demoOrders.productName,
+      amount: demoOrders.amount,
+      paymentMethod: demoOrders.paymentMethod,
+      status: demoOrders.status,
+      paymentId: demoOrders.paymentId,
+      customerInfo: demoOrders.customerInfo,
+      expiresAt: demoOrders.expiresAt,
+      createdAt: demoOrders.createdAt,
+      updatedAt: demoOrders.updatedAt,
+      callbackStatus: payments.callbackStatus,
+      callbackUrl: payments.callbackUrl,
+    })
+    .from(demoOrders)
+    .leftJoin(payments, eq(demoOrders.paymentId, payments.id))
+    .orderBy(desc(demoOrders.createdAt));
+
+  return ordersResult;
+}
+
 export async function getDemoOrderById(orderId: string): Promise<DemoOrder | null> {
   const [order] = await db.select().from(demoOrders).where(eq(demoOrders.orderId, orderId));
   return order || null;
@@ -161,51 +185,91 @@ export async function confirmPaymentMatch(unmatchedId: string, orderId: string):
 
 // 统计操作
 export async function getPaymentStatistics() {
-  // 今日统计
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  // 获取上海时区的今日开始和结束时间
+  const now = new Date();
+  const shanghaiOffset = 8 * 60; // 上海时区UTC+8
+  const localOffset = now.getTimezoneOffset();
+  const shanghaiTime = new Date(now.getTime() + (shanghaiOffset + localOffset) * 60000);
+  
+  const todayStart = new Date(shanghaiTime);
+  todayStart.setHours(0, 0, 0, 0);
+  // 转回UTC时间用于数据库查询
+  const todayStartUTC = new Date(todayStart.getTime() - shanghaiOffset * 60000);
+  
+  const todayEnd = new Date(shanghaiTime);
+  todayEnd.setHours(23, 59, 59, 999);
+  const todayEndUTC = new Date(todayEnd.getTime() - shanghaiOffset * 60000);
 
-  const [todayStats] = await db.select({
+  // 今日支付统计 - 只统计成功的支付
+  const [todayPaymentStats] = await db.select({
     count: sql<number>`count(*)::int`,
     total: sql<number>`COALESCE(sum(amount), 0)::real`
   }).from(payments).where(
     and(
-      gte(payments.createdAt, today),
-      lte(payments.createdAt, tomorrow)
+      eq(payments.status, 'success'),
+      gte(payments.createdAt, todayStartUTC),
+      lte(payments.createdAt, todayEndUTC)
     )
   );
 
-  // 总统计
-  const [totalStats] = await db.select({
+  // 总支付统计 - 只统计成功的支付
+  const [totalPaymentStats] = await db.select({
     count: sql<number>`count(*)::int`,
     total: sql<number>`COALESCE(sum(amount), 0)::real`
-  }).from(payments);
-
-  // 成功支付统计
-  const [successStats] = await db.select({
-    count: sql<number>`count(*)::int`
   }).from(payments).where(eq(payments.status, 'success'));
 
-  // 订单统计
-  const [orderStats] = await db.select({
+  // 今日订单统计
+  const [todayOrderStats] = await db.select({
     pending: sql<number>`count(*) filter (where status = 'pending')::int`,
     success: sql<number>`count(*) filter (where status = 'success')::int`,
     expired: sql<number>`count(*) filter (where status = 'expired')::int`,
+    failed: sql<number>`count(*) filter (where status = 'failed')::int`,
+    total: sql<number>`count(*)::int`
+  }).from(demoOrders).where(
+    and(
+      gte(demoOrders.createdAt, todayStartUTC),
+      lte(demoOrders.createdAt, todayEndUTC)
+    )
+  );
+
+  // 总订单统计
+  const [totalOrderStats] = await db.select({
+    pending: sql<number>`count(*) filter (where status = 'pending')::int`,
+    success: sql<number>`count(*) filter (where status = 'success')::int`,
+    expired: sql<number>`count(*) filter (where status = 'expired')::int`,
+    failed: sql<number>`count(*) filter (where status = 'failed')::int`,
     total: sql<number>`count(*)::int`
   }).from(demoOrders);
 
+  // 待匹配支付统计
+  const [unmatchedStats] = await db.select({
+    count: sql<number>`count(*)::int`
+  }).from(unmatchedPayments).where(eq(unmatchedPayments.isProcessed, false));
+
   return {
-    todayPayments: todayStats.count,
-    todayAmount: todayStats.total,
-    totalPayments: totalStats.count,
-    totalAmount: totalStats.total,
-    successRate: totalStats.count > 0 ? (successStats.count / totalStats.count * 100).toFixed(1) : '0',
-    pendingOrders: orderStats.pending,
-    successOrders: orderStats.success,
-    expiredOrders: orderStats.expired,
-    totalOrders: orderStats.total
+    // 今日统计
+    todayPayments: todayPaymentStats.count || 0,
+    todayAmount: todayPaymentStats.total || 0,
+    todayOrders: todayOrderStats.total || 0,
+    
+    // 总统计
+    totalPayments: totalPaymentStats.count || 0,
+    totalAmount: totalPaymentStats.total || 0,
+    totalOrders: totalOrderStats.total || 0,
+    
+    // 订单状态统计
+    pendingOrders: totalOrderStats.pending || 0,
+    successOrders: totalOrderStats.success || 0,
+    expiredOrders: totalOrderStats.expired || 0,
+    failedOrders: totalOrderStats.failed || 0,
+    
+    // 待匹配支付
+    unmatchedPayments: unmatchedStats.count || 0,
+    
+    // 成功率计算（基于订单）
+    successRate: totalOrderStats.total > 0 
+      ? ((totalOrderStats.success / totalOrderStats.total) * 100).toFixed(1) 
+      : '0.0'
   };
 }
 
