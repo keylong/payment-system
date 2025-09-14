@@ -1,0 +1,10 @@
+[
+  {
+    "id": "default",
+    "name": "默认商户",
+    "callbackUrl": "http://localhost:3001/callback",
+    "apiKey": "34073969",
+    "createdAt": "2025-09-13T15:22:20.468Z",
+    "updatedAt": "2025-09-14T01:40:14.619Z"
+  }
+]
