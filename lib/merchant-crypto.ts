@@ -7,7 +7,7 @@ export interface MerchantSignatureConfig {
 }
 
 export interface SignedPayload {
-  [key: string]: any;
+  [key: string]: unknown;
   timestamp: number;
   nonce: string;
   signature: string;
@@ -28,7 +28,7 @@ export function generateNonce(length: number = 16): string {
  * 3. 使用HMAC-SHA256生成签名
  */
 export function generateMerchantSignature(
-  params: Record<string, any>,
+  params: Record<string, unknown>,
   config: MerchantSignatureConfig
 ): string {
   const timestamp = config.timestamp || Math.floor(Date.now() / 1000);
@@ -47,8 +47,8 @@ export function generateMerchantSignature(
   
   // 拼接签名字符串，过滤undefined值
   const signString = sortedKeys
-    .filter(key => allParams[key] !== undefined && allParams[key] !== null)
-    .map(key => `${key}=${allParams[key]}`)
+    .filter(key => allParams[key as keyof typeof allParams] !== undefined && allParams[key as keyof typeof allParams] !== null)
+    .map(key => `${key}=${allParams[key as keyof typeof allParams]}`)
     .join('&');
   
   console.log('[商户签名] 签名字符串:', signString);
@@ -66,13 +66,19 @@ export function generateMerchantSignature(
  * 验证商户端签名
  */
 export function verifyMerchantSignature(
-  params: Record<string, any>,
+  params: Record<string, unknown>,
   signature: string,
   apiKey: string,
   maxAge: number = 300
 ): boolean {
   try {
     const { timestamp, nonce, ...otherParams } = params;
+    
+    // 类型检查和转换
+    if (typeof timestamp !== 'number' || typeof nonce !== 'string') {
+      console.log('[商户验证] 时间戳或nonce类型不正确');
+      return false;
+    }
     
     // 验证时间戳
     const currentTime = Math.floor(Date.now() / 1000);
@@ -107,7 +113,7 @@ export function verifyMerchantSignature(
  * 为数据添加商户签名
  */
 export function signMerchantData(
-  data: Record<string, any>,
+  data: Record<string, unknown>,
   apiKey: string
 ): SignedPayload {
   const timestamp = Math.floor(Date.now() / 1000);
@@ -131,7 +137,7 @@ export function signMerchantData(
  * 创建商户API请求
  */
 export function createMerchantRequest(
-  data: Record<string, any>,
+  data: Record<string, unknown>,
   apiKey: string
 ): {
   body: string;

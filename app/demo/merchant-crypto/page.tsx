@@ -69,7 +69,7 @@ export default function MerchantCryptoDemo() {
       }, null, 2));
       
     } catch (error) {
-      setResult(`错误: ${error.message}`);
+      setResult(`错误: ${error instanceof Error ? error.message : String(error)}`);
     }
     setLoading(false);
   };
@@ -99,7 +99,7 @@ export default function MerchantCryptoDemo() {
       }, null, 2));
       
     } catch (error) {
-      setVerifyResult(`错误: ${error.message}`);
+      setVerifyResult(`错误: ${error instanceof Error ? error.message : String(error)}`);
     }
     setLoading(false);
   };

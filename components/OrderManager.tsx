@@ -27,7 +27,6 @@ export default function OrderManager() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [unmatchedPayments, setUnmatchedPayments] = useState<UnmatchedPayment[]>([]);
   const [showUnmatched, setShowUnmatched] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   const fetchOrders = async () => {
     try {
@@ -76,7 +75,7 @@ export default function OrderManager() {
         fetchOrders();
         fetchUnmatchedPayments();
       }
-    } catch (error) {
+    } catch {
       alert('确认失败');
     }
   };

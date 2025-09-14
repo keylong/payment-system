@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-const crypto = require('crypto');
-const http = require('http');
+import crypto from 'crypto';
+import http from 'http';
 
 // 配置
 const CALLBACK_URL = 'http://localhost:3000/api/merchant-callback';
@@ -134,7 +134,7 @@ function sendTestCallback(testType = 'valid') {
       console.log('响应体:');
       try {
         console.log(JSON.stringify(JSON.parse(data), null, 2));
-      } catch (e) {
+      } catch {
         console.log(data);
       }
       console.log('=========================\n');

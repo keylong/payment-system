@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ToastProvider';
+import Image from 'next/image';
 
 interface QRCode {
   id: string;
@@ -66,7 +67,16 @@ export default function QRCodeManager() {
       const base64 = await fileToBase64(file);
       
       // 准备上传数据
-      const uploadData: any = {
+      interface UploadData {
+        type: string;
+        image: string;
+        amount?: number;
+        fixedAmount?: number;
+        minAmount?: number;
+        maxAmount?: number;
+      }
+      
+      const uploadData: UploadData = {
         type: uploadType,
         image: base64
       };
@@ -197,7 +207,7 @@ export default function QRCodeManager() {
                     type="radio"
                     value="any"
                     checked={amountType === 'any'}
-                    onChange={(e) => setAmountType(e.target.value as any)}
+                    onChange={(e) => setAmountType(e.target.value as 'any' | 'fixed' | 'range')}
                     className="mr-2"
                   />
                   任意金额
@@ -207,7 +217,7 @@ export default function QRCodeManager() {
                     type="radio"
                     value="fixed"
                     checked={amountType === 'fixed'}
-                    onChange={(e) => setAmountType(e.target.value as any)}
+                    onChange={(e) => setAmountType(e.target.value as 'any' | 'fixed' | 'range')}
                     className="mr-2"
                   />
                   固定金额
@@ -227,7 +237,7 @@ export default function QRCodeManager() {
                     type="radio"
                     value="range"
                     checked={amountType === 'range'}
-                    onChange={(e) => setAmountType(e.target.value as any)}
+                    onChange={(e) => setAmountType(e.target.value as 'any' | 'fixed' | 'range')}
                     className="mr-2"
                   />
                   金额范围
@@ -277,9 +287,11 @@ export default function QRCodeManager() {
         {qrCodes.map((qr) => (
           <div key={qr.id} className="border rounded-lg p-4">
             <div className="mb-2">
-              <img
+              <Image
                 src={qr.image}
                 alt={`${qr.type}二维码`}
+                width={300}
+                height={192}
                 className="w-full h-48 object-contain bg-gray-50 rounded"
               />
             </div>

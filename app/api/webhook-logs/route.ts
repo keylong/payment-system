@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { webhookLogger } from '@/lib/webhook-logger';
+import { formatShanghaiTime } from '@/lib/timezone';
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
       data: {
         logs,
         total: logs.length,
-        timestamp: new Date().toISOString()
+        timestamp: formatShanghaiTime(new Date())
       }
     });
 
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
           success: true,
           data: {
             logs,
-            exportTime: new Date().toISOString(),
+            exportTime: formatShanghaiTime(new Date()),
             filename: `webhook-logs-${Date.now()}.json`
           }
         });

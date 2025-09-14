@@ -62,7 +62,7 @@ export default function DemoShop() {
       }
 
       // 创建订单
-      const response = await fetch('/api/demo-order', {
+      const response = await fetch('/api/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

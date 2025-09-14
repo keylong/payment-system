@@ -1,101 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
-
-interface QRCode {
-  id: string;
-  type: 'alipay' | 'wechat';
-  image: string;  // Base64 encoded image
-  minAmount?: number;
-  maxAmount?: number;
-  fixedAmount?: number;
-  isActive: boolean;
-  uploadedAt: Date;
-}
-
-const QRCODES_FILE = path.join(process.cwd(), 'data', 'qrcodes.json');
-
-async function ensureQRCodesFile() {
-  try {
-    await fs.access(QRCODES_FILE);
-  } catch {
-    // 创建默认二维码（占位符）
-    const defaultQRCodes: QRCode[] = [
-      {
-        id: 'default-alipay',
-        type: 'alipay',
-        image: generatePlaceholderQR('支付宝'),
-        isActive: true,
-        uploadedAt: new Date()
-      },
-      {
-        id: 'default-wechat',
-        type: 'wechat',
-        image: generatePlaceholderQR('微信'),
-        isActive: true,
-        uploadedAt: new Date()
-      }
-    ];
-    await fs.writeFile(QRCODES_FILE, JSON.stringify(defaultQRCodes, null, 2), 'utf-8');
-  }
-}
-
-async function getQRCodes(): Promise<QRCode[]> {
-  await ensureQRCodesFile();
-  const data = await fs.readFile(QRCODES_FILE, 'utf-8');
-  return JSON.parse(data);
-}
-
-async function saveQRCodes(qrcodes: QRCode[]): Promise<void> {
-  await fs.writeFile(QRCODES_FILE, JSON.stringify(qrcodes, null, 2), 'utf-8');
-}
+import { getActiveQRCodes, saveQRCode, deleteQRCode } from '@/lib/database';
 
 // 获取二维码
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const type = searchParams.get('type') as 'alipay' | 'wechat' | null;
-    const amount = searchParams.get('amount');
     
-    const qrcodes = await getQRCodes();
-    let filtered = qrcodes.filter(qr => qr.isActive);
+    const qrcodes = await getActiveQRCodes();
+    let filtered = qrcodes;
     
     // 按类型筛选
     if (type) {
       filtered = filtered.filter(qr => qr.type === type);
     }
     
-    // 按金额筛选
-    if (amount) {
-      const amountNum = parseFloat(amount);
-      filtered = filtered.filter(qr => {
-        if (qr.fixedAmount) {
-          return qr.fixedAmount === amountNum;
-        }
-        if (qr.minAmount && qr.maxAmount) {
-          return amountNum >= qr.minAmount && amountNum <= qr.maxAmount;
-        }
-        return true; // 没有金额限制的二维码
-      });
-    }
-    
-    // 如果筛选后没有结果，返回默认二维码
-    if (filtered.length === 0 && type) {
-      filtered = qrcodes.filter(qr => qr.type === type && qr.isActive);
-    }
-    
     // 返回第一个匹配的二维码
     const qrCode = filtered[0];
     
     if (!qrCode) {
-      return NextResponse.json(
-        { error: '没有可用的收款码' },
-        { status: 404 }
-      );
+      // 如果没有可用的二维码，返回占位符
+      return NextResponse.json({
+        qrCode: generatePlaceholderQR(type === 'alipay' ? '支付宝' : type === 'wechat' ? '微信' : '收款'),
+        type: type || 'alipay',
+        id: 'placeholder'
+      });
     }
     
     return NextResponse.json({
-      qrCode: qrCode.image,
+      qrCode: qrCode.imageUrl,
       type: qrCode.type,
       id: qrCode.id
     });
@@ -113,7 +46,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { type, image, minAmount, maxAmount, fixedAmount } = body;
+    const { type, image, name, description } = body;
     
     if (!type || !image) {
       return NextResponse.json(
@@ -122,21 +55,16 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const qrcodes = await getQRCodes();
-    
-    const newQRCode: QRCode = {
-      id: `qr-${Date.now()}`,
+    const qrCodeData = {
+      name: name || `${type === 'alipay' ? '支付宝' : '微信'}收款码`,
       type,
-      image,
-      minAmount,
-      maxAmount,
-      fixedAmount,
+      imageUrl: image,
+      description: description || '',
       isActive: true,
-      uploadedAt: new Date()
+      sortOrder: 0
     };
     
-    qrcodes.push(newQRCode);
-    await saveQRCodes(qrcodes);
+    const newQRCode = await saveQRCode(qrCodeData);
     
     return NextResponse.json({
       success: true,
@@ -165,17 +93,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
     
-    const qrcodes = await getQRCodes();
-    const filtered = qrcodes.filter(qr => qr.id !== id);
-    
-    if (filtered.length === qrcodes.length) {
-      return NextResponse.json(
-        { error: '二维码不存在' },
-        { status: 404 }
-      );
-    }
-    
-    await saveQRCodes(filtered);
+    await deleteQRCode(id);
     
     return NextResponse.json({
       success: true,

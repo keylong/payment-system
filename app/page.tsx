@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { formatAmount } from '@/lib/parser';
+import { formatShanghaiTime } from '@/lib/timezone';
 import dynamic from 'next/dynamic';
 import { useToast } from '@/components/ToastProvider';
 
@@ -33,10 +34,10 @@ interface Order {
 }
 
 interface UnmatchedPayment {
-  paymentId: string;
+  id: string;
   amount: number;
   paymentMethod: string;
-  receivedAt: string;
+  createdAt: string;
   possibleOrderIds?: string[];
 }
 
@@ -93,7 +94,7 @@ export default function Home() {
         fetch('/api/payments'),
         fetch('/api/statistics'),
         fetch('/api/config'),
-        fetch('/api/demo-order'),
+        fetch('/api/orders'),
         fetch('/api/unmatched-payments')
       ]);
 
@@ -169,7 +170,7 @@ export default function Home() {
       } else {
         toast.error('保存失败');
       }
-    } catch (error) {
+    } catch {
       toast.error('保存出错，请重试');
     }
   };
@@ -186,7 +187,7 @@ export default function Home() {
         toast.success('匹配确认成功');
         fetchData();
       }
-    } catch (error) {
+    } catch {
       toast.error('确认失败，请重试');
     }
   };
@@ -206,7 +207,7 @@ export default function Home() {
         const error = await response.json();
         toast.error(error.error || '忽略失败');
       }
-    } catch (error) {
+    } catch {
       toast.error('忽略失败，请重试');
     }
   };
@@ -240,14 +241,14 @@ export default function Home() {
         }
         fetchData();
       }
-    } catch (error) {
+    } catch {
       toast.error('重试失败，请稍后再试');
     }
   };
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
-      const res = await fetch(`/api/demo-order`, {
+      const res = await fetch(`/api/orders`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId, status })
@@ -257,7 +258,7 @@ export default function Home() {
         toast.success('订单状态更新成功');
         fetchData();
       }
-    } catch (error) {
+    } catch {
       toast.error('更新失败，请重试');
     }
   };
@@ -289,7 +290,7 @@ ${new Date().toISOString()}`
       } else {
         toast.error('测试失败');
       }
-    } catch (error) {
+    } catch {
       toast.error('发送测试消息失败');
     }
   };
@@ -315,26 +316,26 @@ ${new Date().toISOString()}`
   }
 
   return (
-    <main className="min-h-screen p-8 bg-gray-50">
+    <main className="min-h-screen p-4 sm:p-6 lg:p-8 bg-gray-50">
       <div className="max-w-7xl mx-auto">
         {/* 头部 */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">收款系统管理后台</h1>
-          <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 space-y-4 sm:space-y-0">
+          <h1 className="text-2xl sm:text-3xl font-bold">收款系统管理后台</h1>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
             <a
               href="/demo"
-              className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+              className="px-3 py-2 text-sm sm:px-4 sm:text-base bg-purple-600 text-white rounded hover:bg-purple-700 whitespace-nowrap"
             >
-              演示商城
+              创建订单
             </a>
             <a
               href="/demo/merchant-crypto"
-              className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+              className="px-3 py-2 text-sm sm:px-4 sm:text-base bg-indigo-600 text-white rounded hover:bg-indigo-700 whitespace-nowrap"
             >
               商户加密演示
             </a>
-            <div className="flex items-center space-x-2">
-              <label className="text-sm">自动刷新</label>
+            <div className="flex items-center gap-2">
+              <label className="text-xs sm:text-sm whitespace-nowrap">自动刷新</label>
               <input
                 type="checkbox"
                 checked={autoRefresh}
@@ -345,7 +346,7 @@ ${new Date().toISOString()}`
                 <select
                   value={refreshInterval}
                   onChange={(e) => setRefreshInterval(Number(e.target.value))}
-                  className="px-2 py-1 border rounded text-sm"
+                  className="px-2 py-1 border rounded text-xs sm:text-sm"
                 >
                   <option value={5000}>5秒</option>
                   <option value={10000}>10秒</option>
@@ -356,13 +357,13 @@ ${new Date().toISOString()}`
             </div>
             <button
               onClick={fetchData}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              className="px-3 py-2 text-sm sm:px-4 sm:text-base bg-blue-500 text-white rounded hover:bg-blue-600 whitespace-nowrap"
             >
               手动刷新
             </button>
             <button
               onClick={testWebhook}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              className="px-3 py-2 text-sm sm:px-4 sm:text-base bg-green-600 text-white rounded hover:bg-green-700 whitespace-nowrap"
             >
               发送测试
             </button>
@@ -371,36 +372,36 @@ ${new Date().toISOString()}`
 
         {/* 统计信息 */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">
-            <div className="bg-white p-4 rounded-lg shadow">
-              <h3 className="text-sm text-gray-500 mb-2">待支付订单</h3>
-              <p className="text-2xl font-bold text-yellow-600">{pendingOrders.length}</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-6 sm:mb-8">
+            <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
+              <h3 className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2">待支付订单</h3>
+              <p className="text-lg sm:text-2xl font-bold text-yellow-600">{pendingOrders.length}</p>
             </div>
-            <div className="bg-white p-4 rounded-lg shadow">
-              <h3 className="text-sm text-gray-500 mb-2">已完成订单</h3>
-              <p className="text-2xl font-bold text-green-600">{completedOrders.length}</p>
+            <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
+              <h3 className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2">已完成订单</h3>
+              <p className="text-lg sm:text-2xl font-bold text-green-600">{completedOrders.length}</p>
             </div>
-            <div className="bg-white p-4 rounded-lg shadow relative">
-              <h3 className="text-sm text-gray-500 mb-2">待确认支付</h3>
-              <p className="text-2xl font-bold text-orange-600">{unmatchedPayments.length}</p>
+            <div className="bg-white p-3 sm:p-4 rounded-lg shadow relative">
+              <h3 className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2">待确认支付</h3>
+              <p className="text-lg sm:text-2xl font-bold text-orange-600">{unmatchedPayments.length}</p>
               {unmatchedPayments.length > 0 && (
-                <span className="absolute top-2 right-2 flex h-3 w-3">
+                <span className="absolute top-2 right-2 flex h-2 w-2 sm:h-3 sm:w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 sm:h-3 sm:w-3 bg-orange-500"></span>
                 </span>
               )}
             </div>
-            <div className="bg-white p-4 rounded-lg shadow">
-              <h3 className="text-sm text-gray-500 mb-2">今日订单</h3>
-              <p className="text-2xl font-bold">{stats.todayCount}</p>
+            <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
+              <h3 className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2">今日订单</h3>
+              <p className="text-lg sm:text-2xl font-bold">{stats.todayCount}</p>
             </div>
-            <div className="bg-white p-4 rounded-lg shadow">
-              <h3 className="text-sm text-gray-500 mb-2">今日金额</h3>
-              <p className="text-2xl font-bold">{formatAmount(stats.todayAmount)}</p>
+            <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
+              <h3 className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2">今日金额</h3>
+              <p className="text-lg sm:text-2xl font-bold">{formatAmount(stats.todayAmount)}</p>
             </div>
-            <div className="bg-white p-4 rounded-lg shadow">
-              <h3 className="text-sm text-gray-500 mb-2">总金额</h3>
-              <p className="text-2xl font-bold">{formatAmount(stats.totalAmount)}</p>
+            <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
+              <h3 className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2">总金额</h3>
+              <p className="text-lg sm:text-2xl font-bold">{formatAmount(stats.totalAmount)}</p>
             </div>
           </div>
         )}
@@ -409,10 +410,10 @@ ${new Date().toISOString()}`
         {/* Tab 导航 */}
         <div className="bg-white rounded-lg shadow mb-6">
           <div className="border-b">
-            <nav className="-mb-px flex">
+            <nav className="-mb-px flex overflow-x-auto">
               <button
                 onClick={() => setActiveTab('orders')}
-                className={`py-3 px-6 border-b-2 font-medium text-sm ${
+                className={`py-3 px-4 sm:px-6 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                   activeTab === 'orders'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -422,7 +423,7 @@ ${new Date().toISOString()}`
               </button>
               <button
                 onClick={() => setActiveTab('unmatched')}
-                className={`py-3 px-6 border-b-2 font-medium text-sm relative ${
+                className={`py-3 px-4 sm:px-6 border-b-2 font-medium text-xs sm:text-sm relative whitespace-nowrap ${
                   activeTab === 'unmatched'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -430,14 +431,14 @@ ${new Date().toISOString()}`
               >
                 待确认
                 {unmatchedPayments.length > 0 && (
-                  <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-orange-500 rounded-full">
+                  <span className="ml-1 sm:ml-2 inline-flex items-center justify-center px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs font-bold leading-none text-white bg-orange-500 rounded-full">
                     {unmatchedPayments.length}
                   </span>
                 )}
               </button>
               <button
                 onClick={() => setActiveTab('payments')}
-                className={`py-3 px-6 border-b-2 font-medium text-sm ${
+                className={`py-3 px-4 sm:px-6 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                   activeTab === 'payments'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -447,7 +448,7 @@ ${new Date().toISOString()}`
               </button>
               <button
                 onClick={() => setActiveTab('qrcode')}
-                className={`py-3 px-6 border-b-2 font-medium text-sm ${
+                className={`py-3 px-4 sm:px-6 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                   activeTab === 'qrcode'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -457,7 +458,7 @@ ${new Date().toISOString()}`
               </button>
               <button
                 onClick={() => setActiveTab('config')}
-                className={`py-3 px-6 border-b-2 font-medium text-sm ${
+                className={`py-3 px-4 sm:px-6 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                   activeTab === 'config'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -469,11 +470,64 @@ ${new Date().toISOString()}`
           </div>
 
           {/* Tab 内容 */}
-          <div className="p-6">
+          <div className="p-3 sm:p-6">
             {/* 订单管理 Tab */}
             {activeTab === 'orders' && (
               <div>
-                <div className="overflow-x-auto">
+                {/* 移动端卡片视图 */}
+                <div className="block sm:hidden space-y-4">
+                  {paginatedOrders.map(order => (
+                    <div key={order.orderId} className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="text-sm font-mono text-gray-600 truncate flex-1 mr-2">
+                          {order.orderId}
+                        </div>
+                        <span className={`px-2 py-1 rounded text-xs ${getStatusColor(order.status)}`}>
+                          {order.status === 'pending' ? '待支付' : 
+                           order.status === 'success' ? '已支付' : '失败'}
+                        </span>
+                      </div>
+                      <div className="text-sm font-medium mb-2">{order.productName}</div>
+                      <div className="flex justify-between text-sm text-gray-600 mb-2">
+                        <span>显示: {formatAmount(order.displayAmount || order.amount)}</span>
+                        <span className="font-bold">实际: {formatAmount(order.actualAmount || order.amount)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          order.paymentMethod === 'alipay' 
+                            ? 'bg-blue-100 text-blue-800' 
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {order.paymentMethod === 'alipay' ? '支付宝' : '微信'}
+                        </span>
+                        <div className="flex space-x-2 text-xs">
+                          {order.status === 'pending' && (
+                            <button
+                              onClick={() => updateOrderStatus(order.orderId, 'success')}
+                              className="text-green-600 hover:text-green-800"
+                            >
+                              标记已付
+                            </button>
+                          )}
+                          {order.status === 'success' && (
+                            <button
+                              onClick={() => retryCallback(order.orderId)}
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              重试回调
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-2">
+                        {formatShanghaiTime(new Date(order.createdAt))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 桌面端表格视图 */}
+                <div className="hidden sm:block overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50">
                       <tr>
@@ -519,7 +573,7 @@ ${new Date().toISOString()}`
                             </span>
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-500">
-                            {new Date(order.createdAt).toLocaleString('zh-CN')}
+                            {formatShanghaiTime(new Date(order.createdAt))}
                           </td>
                           <td className="px-4 py-3 text-sm">
                             <div className="flex space-x-2">
@@ -565,7 +619,55 @@ ${new Date().toISOString()}`
             {/* 支付记录 Tab */}
             {activeTab === 'payments' && (
               <div>
-                <div className="overflow-x-auto">
+                {/* 移动端卡片视图 */}
+                <div className="block sm:hidden space-y-4">
+                  {paginatedPayments.map((payment) => (
+                    <div key={payment.id} className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="text-sm font-mono text-gray-600 truncate flex-1 mr-2">
+                          {payment.id}
+                        </div>
+                        <div className="text-lg font-bold text-green-600">
+                          {formatAmount(payment.amount)}
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-600 mb-2">
+                        UID: {payment.uid}
+                      </div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          payment.paymentMethod === 'alipay' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                        }`}>
+                          {payment.paymentMethod === 'alipay' ? '支付宝' : '微信'}
+                        </span>
+                        <span className="text-sm text-gray-600">
+                          {payment.customerType || '-'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          payment.status === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {payment.status === 'success' ? '成功' : '失败'}
+                        </span>
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          payment.callbackStatus === 'sent' ? 'bg-green-100 text-green-800' : 
+                          payment.callbackStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {payment.callbackStatus === 'sent' ? '已发送' : 
+                           payment.callbackStatus === 'pending' ? '待发送' : '失败'}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {formatShanghaiTime(new Date(payment.createdAt))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 桌面端表格视图 */}
+                <div className="hidden sm:block overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50">
                       <tr>
@@ -611,7 +713,7 @@ ${new Date().toISOString()}`
                             </span>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-500">
-                            {new Date(payment.createdAt).toLocaleString('zh-CN')}
+                            {formatShanghaiTime(new Date(payment.createdAt))}
                           </td>
                         </tr>
                       ))}
@@ -654,19 +756,19 @@ ${new Date().toISOString()}`
                     </div>
 
                     {unmatchedPayments.map(payment => (
-                      <div key={payment.paymentId} className="bg-white border rounded-lg p-6">
-                        <div className="grid md:grid-cols-2 gap-6">
-                          {/* 左侧：支付信息 */}
+                      <div key={payment.id} className="bg-white border rounded-lg p-3 sm:p-4 md:p-6">
+                        <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0">
+                          {/* 支付信息 */}
                           <div>
-                            <h4 className="font-semibold mb-3">支付信息</h4>
-                            <div className="space-y-2 text-sm">
+                            <h4 className="font-semibold mb-3 text-sm sm:text-base">支付信息</h4>
+                            <div className="space-y-2 text-xs sm:text-sm">
                               <div className="flex justify-between">
                                 <span className="text-gray-600">支付ID：</span>
-                                <span className="font-mono">{payment.paymentId}</span>
+                                <span className="font-mono text-xs">{payment.id}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-gray-600">支付金额：</span>
-                                <span className="font-bold text-lg text-green-600">¥{payment.amount.toFixed(2)}</span>
+                                <span className="font-bold text-base sm:text-lg text-green-600">¥{payment.amount.toFixed(2)}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-gray-600">支付方式：</span>
@@ -680,7 +782,7 @@ ${new Date().toISOString()}`
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-gray-600">收款时间：</span>
-                                <span>{new Date(payment.receivedAt).toLocaleString('zh-CN')}</span>
+                                <span className="text-xs">{formatShanghaiTime(new Date(payment.createdAt))}</span>
                               </div>
                             </div>
                           </div>
@@ -694,7 +796,7 @@ ${new Date().toISOString()}`
                                 <select
                                   onChange={(e) => {
                                     if (e.target.value) {
-                                      confirmMatch(payment.paymentId, e.target.value);
+                                      confirmMatch(payment.id, e.target.value);
                                     }
                                   }}
                                   className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -709,15 +811,15 @@ ${new Date().toISOString()}`
                                     );
                                   })}
                                 </select>
-                                <div className="flex space-x-2">
+                                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                                   <button
-                                    onClick={() => confirmMatch(payment.paymentId, payment.possibleOrderIds![0])}
-                                    className="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                                    onClick={() => confirmMatch(payment.id, payment.possibleOrderIds![0])}
+                                    className="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium"
                                   >
                                     确认第一个
                                   </button>
                                   <button
-                                    onClick={() => ignorePayment(payment.paymentId)}
+                                    onClick={() => ignorePayment(payment.id)}
                                     className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 text-sm"
                                   >
                                     忽略此支付
@@ -725,16 +827,16 @@ ${new Date().toISOString()}`
                                 </div>
                               </div>
                             ) : (
-                              <div className="bg-red-50 rounded-lg p-4">
+                              <div className="bg-red-50 rounded-lg p-3 sm:p-4">
                                 <p className="text-sm text-red-700 mb-2">
                                   ⚠️ 没有找到匹配的订单
                                 </p>
-                                <p className="text-xs text-red-600">
+                                <p className="text-xs text-red-600 mb-3">
                                   可能原因：金额不匹配、订单已支付、订单已取消
                                 </p>
                                 <button
-                                  onClick={() => ignorePayment(payment.paymentId)}
-                                  className="mt-3 w-full px-3 py-2 border border-red-300 text-red-700 rounded hover:bg-red-50 text-sm"
+                                  onClick={() => ignorePayment(payment.id)}
+                                  className="w-full px-3 py-2 border border-red-300 text-red-700 rounded hover:bg-red-50 text-sm"
                                 >
                                   忽略此支付
                                 </button>
@@ -756,20 +858,20 @@ ${new Date().toISOString()}`
               </div>
             )}
 
-            {/* 系统配置 Tab */}
+            {/* 系统配置 Tab - 移动端优化 */}
             {activeTab === 'config' && (
               <div className="max-w-2xl">
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   <div>
                     <label className="block text-sm font-medium mb-2">回调URL</label>
                     <input
                       type="text"
                       value={merchantConfig.callbackUrl}
                       onChange={(e) => setMerchantConfig({...merchantConfig, callbackUrl: e.target.value})}
-                      className="w-full px-3 py-2 border rounded"
+                      className="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="http://your-server.com/callback"
                     />
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-xs sm:text-sm text-gray-500 mt-1">
                       支付成功后系统会向此URL发送通知
                     </p>
                   </div>
@@ -779,25 +881,25 @@ ${new Date().toISOString()}`
                       type="text"
                       value={merchantConfig.apiKey}
                       onChange={(e) => setMerchantConfig({...merchantConfig, apiKey: e.target.value})}
-                      className="w-full px-3 py-2 border rounded"
+                      className="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="your-api-key"
                     />
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-xs sm:text-sm text-gray-500 mt-1">
                       用于签名验证，确保数据安全
                     </p>
                   </div>
                   <button
                     onClick={saveConfig}
-                    className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    className="w-full sm:w-auto px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium"
                   >
                     保存配置
                   </button>
                 </div>
 
-                {/* 系统说明 */}
-                <div className="mt-8 bg-blue-50 rounded-lg p-4">
-                  <h4 className="font-semibold text-blue-800 mb-2">💡 系统使用说明</h4>
-                  <ul className="space-y-1 text-sm text-blue-700">
+                {/* 系统说明 - 移动端优化 */}
+                <div className="mt-6 sm:mt-8 bg-blue-50 rounded-lg p-3 sm:p-4">
+                  <h4 className="font-semibold text-blue-800 mb-2 text-sm sm:text-base">💡 系统使用说明</h4>
+                  <ul className="space-y-1 text-xs sm:text-sm text-blue-700">
                     <li>• 智能检测金额冲突，只在需要时添加叠数小额（11、22、33等）</li>
                     <li>• 叠数设计便于用户输入，如 10.22、10.33、10.44</li>
                     <li>• 收到支付通知后，系统自动根据金额匹配对应订单</li>
@@ -809,50 +911,63 @@ ${new Date().toISOString()}`
             )}
           </div>
 
-          {/* 分页 */}
+          {/* 分页 - 移动端优化 */}
           {((activeTab === 'orders' && orders.length > ITEMS_PER_PAGE) ||
             (activeTab === 'payments' && payments.length > ITEMS_PER_PAGE)) && (
-            <div className="px-6 py-4 border-t flex justify-center space-x-2">
-              <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-              >
-                上一页
-              </button>
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = currentPage - 2 + i;
-                }
+            <div className="px-3 sm:px-6 py-4 border-t flex justify-center items-center">
+              {/* 移动端简化分页 */}
+              <div className="flex items-center space-x-1 sm:space-x-2">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="px-2 sm:px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  上一页
+                </button>
                 
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => setCurrentPage(pageNum)}
-                    className={`px-3 py-1 border rounded ${
-                      currentPage === pageNum 
-                        ? 'bg-blue-600 text-white' 
-                        : 'hover:bg-gray-50'
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
-              <button
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-              >
-                下一页
-              </button>
+                {/* 移动端显示页码信息 */}
+                <div className="hidden sm:flex space-x-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`px-3 py-1 text-sm border rounded ${
+                          currentPage === pageNum 
+                            ? 'bg-blue-600 text-white' 
+                            : 'hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                {/* 移动端简化页码显示 */}
+                <div className="sm:hidden px-3 py-1 text-sm text-gray-600 bg-gray-50 rounded">
+                  {currentPage} / {totalPages}
+                </div>
+                
+                <button
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-2 sm:px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  下一页
+                </button>
+              </div>
             </div>
           )}
         </div>

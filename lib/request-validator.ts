@@ -35,7 +35,7 @@ export function validateContentType(request: NextRequest, allowedTypes: string[]
   }
 }
 
-export function validateJsonStructure(body: string): any {
+export function validateJsonStructure(body: string): Record<string, unknown> {
   try {
     const parsed = JSON.parse(body);
     
@@ -52,7 +52,7 @@ export function validateJsonStructure(body: string): any {
   }
 }
 
-export function validateRequiredFields(data: any, requiredFields: string[]): void {
+export function validateRequiredFields(data: Record<string, unknown>, requiredFields: string[]): void {
   const missingFields = requiredFields.filter(field => !(field in data) || data[field] === undefined);
   
   if (missingFields.length > 0) {
@@ -63,13 +63,13 @@ export function validateRequiredFields(data: any, requiredFields: string[]): voi
   }
 }
 
-export function sanitizeInput(data: any): any {
+export function sanitizeInput(data: unknown): unknown {
   if (typeof data === 'string') {
     return data.trim().replace(/[<>\"'&]/g, '');
   }
   
   if (typeof data === 'object' && data !== null) {
-    const sanitized: any = {};
+    const sanitized: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(data)) {
       sanitized[key] = sanitizeInput(value);
     }
@@ -83,7 +83,7 @@ export function validateWebhookRequest(
   request: NextRequest,
   rawBody: string,
   config: RequestValidationConfig
-): any {
+): unknown {
   validateRequestSize(rawBody, config.maxBodySize);
   validateContentType(request, config.allowedContentType);
   
@@ -122,7 +122,7 @@ export function validateTimestamp(timestamp: string | null, maxAge: number = 300
   }
 }
 
-export function detectSuspiciousPatterns(data: any): boolean {
+export function detectSuspiciousPatterns(data: unknown): boolean {
   const suspiciousPatterns = [
     /script.*>/i,
     /javascript:/i,

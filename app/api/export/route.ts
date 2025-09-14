@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPaymentRecords } from '@/lib/database';
-import { formatAmount } from '@/lib/parser';
+import { formatShanghaiTime } from '@/lib/timezone';
+import type { Payment } from '@/lib/db/schema';
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         success: true,
         count: records.length,
-        exportDate: new Date().toISOString(),
+        exportDate: formatShanghaiTime(new Date()),
         data: records.map(record => ({
           id: record.id,
           amount: record.amount,
@@ -69,7 +70,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function generateCSV(records: any[]): string {
+function generateCSV(records: Payment[]): string {
   // CSV 头部
   const headers = [
     '订单ID',
@@ -97,8 +98,8 @@ function generateCSV(records: any[]): string {
       record.status === 'success' ? '成功' : '失败',
       record.callbackStatus === 'sent' ? '已发送' : record.callbackStatus === 'pending' ? '待发送' : '失败',
       record.source,
-      new Date(record.timestamp).toLocaleString('zh-CN'),
-      new Date(record.createdAt).toLocaleString('zh-CN')
+      formatShanghaiTime(new Date(record.timestamp)),
+      formatShanghaiTime(new Date(record.createdAt))
     ].map(field => {
       // 处理包含逗号、引号或换行的字段
       const str = String(field);

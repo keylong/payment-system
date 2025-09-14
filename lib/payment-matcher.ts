@@ -3,68 +3,21 @@
  * 通过金额和时间窗口匹配支付与订单
  */
 
-import fs from 'fs/promises';
-import path from 'path';
+import {
+  savePendingOrder,
+  updatePendingOrder,
+  getActivePendingOrders,
+  cleanupExpiredPendingOrders,
+  saveUnmatchedPaymentWithStatus,
+  getUnmatchedPayments,
+  confirmPaymentMatch as dbConfirmPaymentMatch,
+} from './db-operations';
+import { type PendingOrder, type UnmatchedPayment } from './db/schema';
 
-interface PendingOrder {
-  orderId: string;
-  amount: number;
-  paymentMethod: 'alipay' | 'wechat';
-  createdAt: Date;
-  expiresAt: Date;
-  status: 'pending' | 'matched' | 'expired';
-  customAmount?: number; // 用于随机小额
-}
-
-interface UnmatchedPayment {
-  paymentId: string;
-  amount: number;
-  paymentMethod: 'alipay' | 'wechat';
-  receivedAt: Date;
-  status: 'unmatched' | 'matched' | 'confirmed' | 'ignored';
+// 扩展接口以包含状态信息
+interface UnmatchedPaymentExtended extends UnmatchedPayment {
   possibleOrderIds?: string[];
-}
-
-const PENDING_ORDERS_FILE = path.join(process.cwd(), 'data', 'pending-orders.json');
-const UNMATCHED_PAYMENTS_FILE = path.join(process.cwd(), 'data', 'unmatched-payments.json');
-
-// 确保文件存在
-async function ensureFiles() {
-  try {
-    await fs.access(PENDING_ORDERS_FILE);
-  } catch {
-    await fs.writeFile(PENDING_ORDERS_FILE, JSON.stringify([]), 'utf-8');
-  }
-  
-  try {
-    await fs.access(UNMATCHED_PAYMENTS_FILE);
-  } catch {
-    await fs.writeFile(UNMATCHED_PAYMENTS_FILE, JSON.stringify([]), 'utf-8');
-  }
-}
-
-// 获取待匹配订单
-async function getPendingOrders(): Promise<PendingOrder[]> {
-  await ensureFiles();
-  const data = await fs.readFile(PENDING_ORDERS_FILE, 'utf-8');
-  return JSON.parse(data);
-}
-
-// 保存待匹配订单
-async function savePendingOrders(orders: PendingOrder[]): Promise<void> {
-  await fs.writeFile(PENDING_ORDERS_FILE, JSON.stringify(orders, null, 2), 'utf-8');
-}
-
-// 获取未匹配支付
-async function getUnmatchedPayments(): Promise<UnmatchedPayment[]> {
-  await ensureFiles();
-  const data = await fs.readFile(UNMATCHED_PAYMENTS_FILE, 'utf-8');
-  return JSON.parse(data);
-}
-
-// 保存未匹配支付
-async function saveUnmatchedPayments(payments: UnmatchedPayment[]): Promise<void> {
-  await fs.writeFile(UNMATCHED_PAYMENTS_FILE, JSON.stringify(payments, null, 2), 'utf-8');
+  status?: 'unmatched' | 'matched' | 'confirmed' | 'ignored';
 }
 
 /**
@@ -77,18 +30,20 @@ export async function createPendingOrder(
   paymentMethod: 'alipay' | 'wechat',
   useRandomAmount: boolean = true
 ): Promise<{ orderId: string; amount: number; customAmount?: number }> {
-  const orders = await getPendingOrders();
+  // 清理过期订单
+  await cleanupExpiredPendingOrders();
+  
+  const orders = await getActivePendingOrders();
   
   let finalAmount = baseAmount;
   let customAmount: number | undefined;
   
-  // 检查是否有相同金额的待支付订单（30分钟内）
-  const recentTime = new Date(Date.now() - 30 * 60 * 1000); // 30分钟内
+  // 检查是否有相同金额的待支付订单（15分钟内）
+  const recentTime = new Date(Date.now() - 15 * 60 * 1000); // 15分钟内
   const conflictingOrders = orders.filter(
     o => Math.abs(o.amount - baseAmount) < 0.01 && // 金额相同
-    o.status === 'pending' &&
     o.paymentMethod === paymentMethod &&
-    new Date(o.createdAt) > recentTime // 30分钟内创建的
+    new Date(o.createdAt) > recentTime // 15分钟内创建的
   );
   
   // 只有在存在冲突时才添加随机小额
@@ -111,7 +66,6 @@ export async function createPendingOrder(
       // 检查这个新金额是否也冲突
       const hasConflict = orders.some(
         o => Math.abs(o.amount - testAmount) < 0.01 &&
-        o.status === 'pending' &&
         o.paymentMethod === paymentMethod &&
         new Date(o.createdAt) > recentTime
       );
@@ -136,7 +90,6 @@ export async function createPendingOrder(
         
         const hasConflict = orders.some(
           o => Math.abs(o.amount - testAmount) < 0.01 &&
-          o.status === 'pending' &&
           o.paymentMethod === paymentMethod &&
           new Date(o.createdAt) > recentTime
         );
@@ -157,18 +110,17 @@ export async function createPendingOrder(
     console.log(`无金额冲突，使用原金额: ¥${baseAmount}`);
   }
   
-  const pendingOrder: PendingOrder = {
+  // 创建待匹配订单
+  const pendingOrderData = {
     orderId,
     amount: finalAmount,
     paymentMethod,
-    createdAt: new Date(),
-    expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30分钟过期
-    status: 'pending',
-    customAmount
+    status: 'pending' as const,
+    customAmount,
+    expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15分钟过期，与订单过期时间一致（上海时间）
   };
   
-  orders.push(pendingOrder);
-  await savePendingOrders(orders);
+  await savePendingOrder(pendingOrderData);
   
   console.log(`创建待匹配订单: ${orderId}, 金额: ¥${finalAmount.toFixed(2)}${customAmount ? ` (含叠数${(customAmount * 100).toFixed(0)}分)` : ''}`);
   
@@ -182,20 +134,14 @@ export async function createPendingOrder(
 export async function matchPayment(
   amount: number,
   paymentMethod: 'alipay' | 'wechat',
-  paymentId: string,
-  receivedAt: Date = new Date()
+  paymentId: string
 ): Promise<{ matched: boolean; orderId?: string; confidence?: number }> {
-  const orders = await getPendingOrders();
-  const now = new Date();
-  
   // 清理过期订单
-  const activeOrders = orders.filter(o => {
-    if (new Date(o.expiresAt) < now && o.status === 'pending') {
-      o.status = 'expired';
-      return false;
-    }
-    return o.status === 'pending';
-  });
+  await cleanupExpiredPendingOrders();
+  
+  // 获取活跃订单
+  const activeOrders = await getActivePendingOrders();
+  
   
   // 查找匹配的订单
   const matchingOrders = activeOrders.filter(
@@ -205,16 +151,14 @@ export async function matchPayment(
   
   if (matchingOrders.length === 0) {
     // 没有匹配的订单，保存为未匹配支付
-    const payments = await getUnmatchedPayments();
-    payments.push({
+    await saveUnmatchedPaymentWithStatus({
       paymentId,
       amount,
       paymentMethod,
-      receivedAt,
-      status: 'unmatched',
-      possibleOrderIds: []
+      source: 'webhook',
+      possibleOrderIds: [],
+      status: 'unmatched'
     });
-    await saveUnmatchedPayments(payments);
     
     console.log(`未找到匹配订单: 金额 ¥${amount}, 方式 ${paymentMethod}`);
     return { matched: false };
@@ -223,8 +167,7 @@ export async function matchPayment(
   if (matchingOrders.length === 1) {
     // 唯一匹配，高置信度
     const order = matchingOrders[0];
-    order.status = 'matched';
-    await savePendingOrders(orders);
+    await updatePendingOrder(order.orderId, { status: 'matched' });
     
     console.log(`成功匹配订单: ${order.orderId} <- 支付 ¥${amount}`);
     return { matched: true, orderId: order.orderId, confidence: 100 };
@@ -240,16 +183,14 @@ export async function matchPayment(
   const confidence = Math.round(100 / matchingOrders.length);
   
   // 保存为待确认的匹配
-  const payments = await getUnmatchedPayments();
-  payments.push({
+  await saveUnmatchedPaymentWithStatus({
     paymentId,
     amount,
     paymentMethod,
-    receivedAt,
-    status: 'unmatched',
-    possibleOrderIds: matchingOrders.map(o => o.orderId)
+    source: 'webhook',
+    possibleOrderIds: matchingOrders.map(o => o.orderId),
+    status: 'unmatched'
   });
-  await saveUnmatchedPayments(payments);
   
   console.log(`找到 ${matchingOrders.length} 个可能的订单，建议: ${mostLikelyOrder.orderId}`);
   
@@ -267,41 +208,54 @@ export async function confirmPaymentMatch(
   paymentId: string,
   orderId: string
 ): Promise<boolean> {
-  const orders = await getPendingOrders();
-  const payments = await getUnmatchedPayments();
-  
-  const payment = payments.find(p => p.paymentId === paymentId);
-  const order = orders.find(o => o.orderId === orderId);
-  
-  if (!payment || !order) {
+  try {
+    // 使用数据库操作来确认匹配
+    await dbConfirmPaymentMatch(paymentId, orderId);
+    
+    // 更新待匹配订单状态
+    await updatePendingOrder(orderId, { status: 'matched' });
+    
+    console.log(`手动确认匹配: ${orderId} <- ${paymentId}`);
+    return true;
+  } catch (error) {
+    console.error(`确认匹配失败: ${paymentId} -> ${orderId}`, error);
     return false;
   }
-  
-  // 更新状态
-  payment.status = 'matched';
-  order.status = 'matched';
-  
-  await savePendingOrders(orders);
-  await saveUnmatchedPayments(payments);
-  
-  console.log(`手动确认匹配: ${orderId} <- ${paymentId}`);
-  return true;
 }
 
 /**
  * 获取待确认的支付
  */
 export async function getUnconfirmedPayments(): Promise<{
-  payment: UnmatchedPayment;
+  payment: UnmatchedPaymentExtended;
   possibleOrders: PendingOrder[];
 }[]> {
   const payments = await getUnmatchedPayments();
-  const orders = await getPendingOrders();
+  const orders = await getActivePendingOrders();
   
-  // 只返回未匹配的支付，排除已忽略的
-  const unconfirmed = payments.filter(p => p.status === 'unmatched');
+  // 解析未匹配支付中的状态信息
+  const unconfirmedPayments = payments
+    .filter(p => !p.isProcessed)
+    .map(payment => {
+      // 解析rawMessage中的状态和可能的订单ID
+      const rawMessage = payment.rawMessage || '';
+      const possibleOrdersMatch = rawMessage.match(/PossibleOrders: ([^\n]*)/);
+      const statusMatch = rawMessage.match(/Status: ([^\n]*)/);
+      
+      const possibleOrderIds = possibleOrdersMatch 
+        ? possibleOrdersMatch[1].split(',').filter(id => id.trim())
+        : [];
+      const status = statusMatch?.[1]?.trim() as 'unmatched' | 'matched' | 'confirmed' | 'ignored' || 'unmatched';
+      
+      return {
+        ...payment,
+        possibleOrderIds,
+        status
+      } as UnmatchedPaymentExtended;
+    })
+    .filter(p => p.status === 'unmatched');
   
-  return unconfirmed.map(payment => ({
+  return unconfirmedPayments.map(payment => ({
     payment,
     possibleOrders: orders.filter(o => 
       payment.possibleOrderIds?.includes(o.orderId) || 
@@ -314,48 +268,47 @@ export async function getUnconfirmedPayments(): Promise<{
  * 忽略指定的支付
  */
 export async function ignorePayment(paymentId: string): Promise<boolean> {
-  const payments = await getUnmatchedPayments();
-  const payment = payments.find(p => p.paymentId === paymentId);
-  
-  if (!payment) {
-    console.log(`未找到支付: ${paymentId}`);
+  try {
+    const payments = await getUnmatchedPayments();
+    const payment = payments.find(p => p.id === paymentId);
+    
+    if (!payment) {
+      console.log(`未找到支付: ${paymentId}`);
+      return false;
+    }
+    
+    if (payment.isProcessed) {
+      console.log(`支付已处理: ${paymentId}`);
+      return false;
+    }
+    
+    // 更新rawMessage标记为已忽略
+    let updatedMessage = payment.rawMessage || '';
+    const statusMatch = updatedMessage.match(/Status: ([^\n]*)/);
+    
+    if (statusMatch) {
+      updatedMessage = updatedMessage.replace(/Status: ([^\n]*)/, 'Status: ignored');
+    } else {
+      updatedMessage = updatedMessage + '\nStatus: ignored';
+    }
+    
+    // 使用数据库操作更新，标记为已处理并设置特殊的忽略标识
+    await dbConfirmPaymentMatch(paymentId, 'IGNORED');
+    
+    console.log(`已忽略支付: ${paymentId}`);
+    return true;
+  } catch (error) {
+    console.error(`忽略支付失败: ${paymentId}`, error);
     return false;
   }
-  
-  if (payment.status !== 'unmatched') {
-    console.log(`支付状态不是未匹配: ${paymentId}, 当前状态: ${payment.status}`);
-    return false;
-  }
-  
-  // 更新状态为已忽略
-  payment.status = 'ignored';
-  
-  await saveUnmatchedPayments(payments);
-  
-  console.log(`已忽略支付: ${paymentId}`);
-  return true;
 }
 
 /**
  * 清理过期数据
  */
 export async function cleanupExpiredData(): Promise<void> {
-  const orders = await getPendingOrders();
-  const payments = await getUnmatchedPayments();
-  const now = new Date();
-  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  // 清理过期的待匹配订单
+  await cleanupExpiredPendingOrders();
   
-  // 保留24小时内的数据
-  const activeOrders = orders.filter(o => 
-    new Date(o.createdAt) > oneDayAgo || o.status === 'pending'
-  );
-  
-  const activePayments = payments.filter(p => 
-    new Date(p.receivedAt) > oneDayAgo || p.status === 'unmatched'
-  );
-  
-  await savePendingOrders(activeOrders);
-  await saveUnmatchedPayments(activePayments);
-  
-  console.log(`清理完成: 保留 ${activeOrders.length} 个订单, ${activePayments.length} 个支付`);
+  console.log('清理过期数据完成');
 }

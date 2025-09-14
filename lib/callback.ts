@@ -1,5 +1,6 @@
 import { PaymentRecord, getMerchantConfig, updatePaymentRecord } from './database';
 import { createMerchantRequest } from './merchant-crypto';
+import { formatShanghaiTime } from './timezone';
 
 export interface CallbackPayload {
   orderId: string;
@@ -10,6 +11,7 @@ export interface CallbackPayload {
   timestamp: string;
   customerType?: string;
   signature?: string;
+  [key: string]: unknown;
 }
 
 export async function notifyMerchant(record: PaymentRecord): Promise<boolean> {
@@ -30,7 +32,7 @@ export async function notifyMerchant(record: PaymentRecord): Promise<boolean> {
       uid: record.uid,
       paymentMethod: record.paymentMethod,
       status: record.status,
-      timestamp: record.timestamp.toString()
+      timestamp: formatShanghaiTime(record.timestamp)
     };
     
     // 只有当customerType存在且不为undefined时才添加

@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { formatShanghaiTime } from './timezone';
 
 export interface WebhookLogEntry {
   timestamp: string;
@@ -32,7 +33,7 @@ export class WebhookLogger {
     });
 
     const logEntry: WebhookLogEntry = {
-      timestamp: new Date().toISOString(),
+      timestamp: formatShanghaiTime(new Date()),
       method: request.method || 'UNKNOWN',
       url: request.url || '',
       headers,

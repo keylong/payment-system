@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { getStatistics } from '@/lib/database';
+import { getPaymentStatistics } from '@/lib/database';
 
 export async function GET() {
   try {
-    const stats = await getStatistics();
+    const stats = await getPaymentStatistics();
     return NextResponse.json(stats);
   } catch (error) {
     console.error('获取统计数据失败:', error);

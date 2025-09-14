@@ -1,244 +1,332 @@
-import fs from 'fs/promises';
-import path from 'path';
-import { PaymentInfo } from './parser';
+// 这是新的数据库操作文件，使用PostgreSQL替代JSON文件存储
+// 保持与原来database.ts相同的接口，以便无缝迁移
 
-export interface PaymentRecord extends PaymentInfo {
+import {
+  savePaymentRecord as dbSavePayment,
+  getPaymentRecords as dbGetPayments,
+  getPaymentById as dbGetPaymentById,
+  updatePaymentRecord as dbUpdatePayment,
+  saveDemoOrder as dbSaveDemoOrder,
+  getDemoOrders as dbGetDemoOrders,
+  getDemoOrderById as dbGetDemoOrderById,
+  updateDemoOrder as dbUpdateDemoOrder,
+  getExpiredOrders as dbGetExpiredOrders,
+  markExpiredOrders as dbMarkExpiredOrders,
+  getMerchantConfig as dbGetMerchantConfig,
+  updateMerchantConfig as dbUpdateMerchantConfig,
+  getQRCodes as dbGetQRCodes,
+  getActiveQRCodes as dbGetActiveQRCodes,
+  saveQRCode as dbSaveQRCode,
+  updateQRCode as dbUpdateQRCode,
+  deleteQRCode as dbDeleteQRCode,
+  saveUnmatchedPayment as dbSaveUnmatchedPayment,
+  getUnmatchedPayments as dbGetUnmatchedPayments,
+  confirmPaymentMatch as dbConfirmPaymentMatch,
+  getPaymentStatistics as dbGetPaymentStatistics,
+} from './db-operations';
+
+// 保持原来的接口类型定义
+export interface PaymentRecord {
   id: string;
-  source: string;
+  amount: number;
+  uid: string;
+  paymentMethod: 'alipay' | 'wechat';
+  status: 'success' | 'failed';
+  source: 'webhook' | 'manual';
+  customerType: string | null;
+  rawMessage: string | null;
+  matchConfidence: number | null;
+  callbackStatus: string | null;
+  callbackUrl: string | null;
   timestamp: Date;
-  rawMessage: string;
-  status: 'pending' | 'success' | 'failed';
-  notifications?: NotificationRecord[];
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface NotificationRecord {
-  id: string;
-  url: string;
-  status: 'pending' | 'success' | 'failed';
-  attempts: number;
-  lastAttempt?: Date;
-  response?: string;
+export interface DemoOrder {
+  orderId: string;
+  productName: string;
+  amount: number;
+  paymentMethod: 'alipay' | 'wechat';
+  status: 'pending' | 'success' | 'failed' | 'expired';
+  paymentId?: string;
+  customerInfo?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+  };
+  expiresAt: Date;
   createdAt: Date;
 }
 
-export interface NotificationUrl {
+export interface MerchantConfig {
+  callbackUrl?: string;
+  apiKey?: string;
+  name?: string;
+  description?: string;
+}
+
+export interface QRCodeInfo {
   id: string;
   name: string;
-  url: string;
-  apiKey?: string;
-  enabled: boolean;
-  successCount: number;
-  failureCount: number;
-  createdAt: Date;
-  updatedAt: Date;
+  type: 'alipay' | 'wechat';
+  imageUrl: string;
+  description?: string;
+  isActive: boolean;
+  sortOrder: number;
 }
 
-const DB_PATH = path.join(process.cwd(), 'data');
-const PAYMENTS_FILE = path.join(DB_PATH, 'payments.json');
-const MERCHANTS_FILE = path.join(DB_PATH, 'merchants.json');
-const NOTIFICATION_URLS_FILE = path.join(DB_PATH, 'notification_urls.json');
-
-async function ensureDbExists() {
-  try {
-    await fs.access(DB_PATH);
-  } catch {
-    await fs.mkdir(DB_PATH, { recursive: true });
-  }
-
-  try {
-    await fs.access(PAYMENTS_FILE);
-  } catch {
-    await fs.writeFile(PAYMENTS_FILE, JSON.stringify([]), 'utf-8');
-  }
-
-  try {
-    await fs.access(MERCHANTS_FILE);
-  } catch {
-    const defaultMerchant = {
-      id: 'default',
-      name: '默认商户',
-      callbackUrl: process.env.MERCHANT_CALLBACK_URL || 'http://localhost:3001/callback',
-      apiKey: process.env.MERCHANT_API_KEY || 'test-api-key-123456',
-      createdAt: new Date().toISOString()
-    };
-    await fs.writeFile(MERCHANTS_FILE, JSON.stringify([defaultMerchant]), 'utf-8');
-  }
+export interface UnmatchedPayment {
+  id: string;
+  amount: number;
+  uid: string;
+  paymentMethod: 'alipay' | 'wechat';
+  customerType?: string;
+  rawMessage?: string;
+  source: string;
+  timestamp: Date;
+  isProcessed: boolean;
+  processedOrderId?: string;
+  paymentId?: string;
+  receivedAt?: Date;
 }
 
-export async function savePaymentRecord(data: Omit<PaymentRecord, 'id' | 'status' | 'createdAt' | 'updatedAt'>): Promise<PaymentRecord> {
-  await ensureDbExists();
-  
-  const records = await getPaymentRecords();
-  
-  const newRecord: PaymentRecord = {
-    ...data,
-    id: generateId(),
-    status: 'success',
-    callbackStatus: 'pending',
-    createdAt: new Date(),
-    updatedAt: new Date()
+// 支付记录操作
+export async function savePaymentRecord(data: Omit<PaymentRecord, 'id' | 'createdAt'>): Promise<PaymentRecord> {
+  const result = await dbSavePayment(data);
+  return {
+    ...result,
+    timestamp: new Date(result.timestamp),
+    createdAt: new Date(result.createdAt),
+    paymentMethod: result.paymentMethod as 'alipay' | 'wechat',
+    status: result.status as 'success' | 'failed',
+    source: result.source as 'webhook' | 'manual'
   };
-  
-  records.push(newRecord);
-  
-  await fs.writeFile(PAYMENTS_FILE, JSON.stringify(records, null, 2), 'utf-8');
-  
-  return newRecord;
 }
 
 export async function getPaymentRecords(): Promise<PaymentRecord[]> {
-  await ensureDbExists();
-  
-  try {
-    const data = await fs.readFile(PAYMENTS_FILE, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error('读取支付记录失败:', error);
-    return [];
-  }
+  const results = await dbGetPayments();
+  return results.map(r => ({
+    ...r,
+    timestamp: new Date(r.timestamp),
+    createdAt: new Date(r.createdAt),
+    updatedAt: new Date(r.updatedAt),
+    paymentMethod: r.paymentMethod as 'alipay' | 'wechat',
+    status: r.status as 'success' | 'failed',
+    source: r.source as 'webhook' | 'manual'
+  }));
 }
 
 export async function getPaymentById(id: string): Promise<PaymentRecord | null> {
-  const records = await getPaymentRecords();
-  return records.find(r => r.id === id) || null;
-}
-
-export async function updatePaymentRecord(id: string, updates: Partial<PaymentRecord>): Promise<PaymentRecord | null> {
-  const records = await getPaymentRecords();
-  const index = records.findIndex(r => r.id === id);
-  
-  if (index === -1) {
-    return null;
-  }
-  
-  records[index] = {
-    ...records[index],
-    ...updates,
-    updatedAt: new Date()
-  };
-  
-  await fs.writeFile(PAYMENTS_FILE, JSON.stringify(records, null, 2), 'utf-8');
-  
-  return records[index];
-}
-
-export async function getMerchantConfig(): Promise<any> {
-  await ensureDbExists();
-  
-  try {
-    const data = await fs.readFile(MERCHANTS_FILE, 'utf-8');
-    const merchants = JSON.parse(data);
-    return merchants[0] || null;
-  } catch (error) {
-    console.error('读取商户配置失败:', error);
-    return null;
-  }
-}
-
-export async function updateMerchantConfig(config: any): Promise<void> {
-  await ensureDbExists();
-  
-  try {
-    const data = await fs.readFile(MERCHANTS_FILE, 'utf-8');
-    const merchants = JSON.parse(data);
-    
-    if (merchants.length > 0) {
-      merchants[0] = { ...merchants[0], ...config, updatedAt: new Date().toISOString() };
-    } else {
-      merchants.push({ ...config, id: 'default', createdAt: new Date().toISOString() });
-    }
-    
-    await fs.writeFile(MERCHANTS_FILE, JSON.stringify(merchants, null, 2), 'utf-8');
-  } catch (error) {
-    console.error('更新商户配置失败:', error);
-    throw error;
-  }
-}
-
-function generateId(): string {
-  return `PAY${Date.now()}${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
-}
-
-export async function getStatistics() {
-  const records = await getPaymentRecords();
-  
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const todayRecords = records.filter(r => new Date(r.createdAt) >= today);
-  
-  const pendingNotifications = records.reduce((sum, r) => {
-    if (r.notifications) {
-      return sum + r.notifications.filter(n => n.status === 'pending').length;
-    }
-    return sum;
-  }, 0);
+  const result = await dbGetPaymentById(id);
+  if (!result) return null;
   
   return {
-    total: records.length,
-    todayCount: todayRecords.length,
-    todayAmount: todayRecords.reduce((sum, r) => sum + r.amount, 0),
-    totalAmount: records.reduce((sum, r) => sum + r.amount, 0),
-    successCount: records.filter(r => r.status === 'success').length,
-    failedCount: records.filter(r => r.status === 'failed').length,
-    pendingCallbacks: pendingNotifications
+    ...result,
+    timestamp: new Date(result.timestamp),
+    createdAt: new Date(result.createdAt),
+    paymentMethod: result.paymentMethod as 'alipay' | 'wechat',
+    status: result.status as 'success' | 'failed',
+    source: result.source as 'webhook' | 'manual'
   };
 }
 
-export async function getNotificationUrls(): Promise<NotificationUrl[]> {
-  await ensureDbExists();
-  
-  try {
-    await fs.access(NOTIFICATION_URLS_FILE);
-    const data = await fs.readFile(NOTIFICATION_URLS_FILE, 'utf-8');
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
+export async function updatePaymentRecord(id: string, data: Partial<PaymentRecord>): Promise<void> {
+  await dbUpdatePayment(id, data);
 }
 
-export async function saveNotificationUrl(url: Omit<NotificationUrl, 'id' | 'createdAt' | 'updatedAt' | 'successCount' | 'failureCount'>): Promise<NotificationUrl> {
-  const urls = await getNotificationUrls();
-  
-  const newUrl: NotificationUrl = {
-    ...url,
-    id: `URL${Date.now()}`,
-    successCount: 0,
-    failureCount: 0,
+// 演示订单操作
+export async function saveDemoOrder(data: Omit<DemoOrder, 'createdAt'>): Promise<DemoOrder> {
+  const result = await dbSaveDemoOrder({
+    ...data,
     createdAt: new Date(),
     updatedAt: new Date()
+  });
+  
+  return {
+    ...result,
+    createdAt: new Date(result.createdAt),
+    expiresAt: new Date(result.expiresAt),
+    paymentMethod: result.paymentMethod as 'alipay' | 'wechat',
+    status: result.status as 'pending' | 'success' | 'failed' | 'expired',
+    paymentId: result.paymentId ?? undefined,
+    customerInfo: result.customerInfo ?? undefined
   };
-  
-  urls.push(newUrl);
-  await fs.writeFile(NOTIFICATION_URLS_FILE, JSON.stringify(urls, null, 2), 'utf-8');
-  
-  return newUrl;
 }
 
-export async function updateNotificationUrl(id: string, updates: Partial<NotificationUrl>): Promise<NotificationUrl | null> {
-  const urls = await getNotificationUrls();
-  const index = urls.findIndex(u => u.id === id);
+export async function getDemoOrders(): Promise<DemoOrder[]> {
+  const results = await dbGetDemoOrders();
+  return results.map(r => ({
+    ...r,
+    createdAt: new Date(r.createdAt),
+    expiresAt: new Date(r.expiresAt),
+    paymentMethod: r.paymentMethod as 'alipay' | 'wechat',
+    status: r.status as 'pending' | 'success' | 'failed' | 'expired',
+    paymentId: r.paymentId ?? undefined,
+    customerInfo: r.customerInfo ?? undefined
+  }));
+}
+
+export async function getDemoOrderById(orderId: string): Promise<DemoOrder | null> {
+  const result = await dbGetDemoOrderById(orderId);
+  if (!result) return null;
   
-  if (index === -1) return null;
+  return {
+    ...result,
+    createdAt: new Date(result.createdAt),
+    expiresAt: new Date(result.expiresAt),
+    paymentMethod: result.paymentMethod as 'alipay' | 'wechat',
+    status: result.status as 'pending' | 'success' | 'failed' | 'expired',
+    paymentId: result.paymentId ?? undefined,
+    customerInfo: result.customerInfo ?? undefined
+  };
+}
+
+export async function updateDemoOrder(orderId: string, data: Partial<DemoOrder>): Promise<void> {
+  await dbUpdateDemoOrder(orderId, data);
+}
+
+// 正式订单操作（使用同一个数据库表）
+export async function saveOrder(data: Omit<DemoOrder, 'createdAt'>): Promise<DemoOrder> {
+  return await saveDemoOrder(data);
+}
+
+export async function getOrders(): Promise<DemoOrder[]> {
+  return await getDemoOrders();
+}
+
+export async function getOrderById(orderId: string): Promise<DemoOrder | null> {
+  return await getDemoOrderById(orderId);
+}
+
+export async function updateOrder(orderId: string, data: Partial<DemoOrder>): Promise<void> {
+  await updateDemoOrder(orderId, data);
+}
+
+export async function getExpiredOrders(): Promise<DemoOrder[]> {
+  const results = await dbGetExpiredOrders();
+  return results.map(r => ({
+    ...r,
+    createdAt: new Date(r.createdAt),
+    expiresAt: new Date(r.expiresAt),
+    paymentMethod: r.paymentMethod as 'alipay' | 'wechat',
+    status: r.status as 'pending' | 'success' | 'failed' | 'expired',
+    paymentId: r.paymentId ?? undefined,
+    customerInfo: r.customerInfo ?? undefined
+  }));
+}
+
+export async function markExpiredOrders(): Promise<void> {
+  await dbMarkExpiredOrders();
+}
+
+// 商户配置操作
+export async function getMerchantConfig(): Promise<MerchantConfig | null> {
+  const result = await dbGetMerchantConfig();
+  if (!result) return null;
   
-  urls[index] = {
-    ...urls[index],
-    ...updates,
+  return {
+    callbackUrl: result.callbackUrl || undefined,
+    apiKey: result.apiKey || undefined,
+    name: result.name || undefined,
+    description: result.description || undefined
+  };
+}
+
+export async function updateMerchantConfig(data: MerchantConfig): Promise<void> {
+  await dbUpdateMerchantConfig(data);
+}
+
+// 二维码操作  
+export async function getQRCodes(): Promise<QRCodeInfo[]> {
+  const results = await dbGetQRCodes();
+  return results.map(r => ({
+    ...r,
+    type: r.type as 'alipay' | 'wechat',
+    description: r.description ?? undefined,
+    isActive: r.isActive ?? false,
+    sortOrder: r.sortOrder ?? 0
+  }));
+}
+
+export async function getActiveQRCodes(): Promise<QRCodeInfo[]> {
+  const results = await dbGetActiveQRCodes();
+  return results.map(r => ({
+    ...r,
+    type: r.type as 'alipay' | 'wechat',
+    description: r.description ?? undefined,
+    isActive: r.isActive ?? false,
+    sortOrder: r.sortOrder ?? 0
+  }));
+}
+
+export async function saveQRCode(data: Omit<QRCodeInfo, 'id'>): Promise<QRCodeInfo> {
+  const { createId } = await import('@paralleldrive/cuid2');
+  const result = await dbSaveQRCode({
+    ...data,
+    id: createId(),
+    createdAt: new Date(),
     updatedAt: new Date()
+  });
+  return {
+    ...result,
+    type: result.type as 'alipay' | 'wechat',
+    description: result.description ?? undefined,
+    isActive: result.isActive ?? false,
+    sortOrder: result.sortOrder ?? 0
   };
-  
-  await fs.writeFile(NOTIFICATION_URLS_FILE, JSON.stringify(urls, null, 2), 'utf-8');
-  return urls[index];
 }
 
-export async function deleteNotificationUrl(id: string): Promise<boolean> {
-  const urls = await getNotificationUrls();
-  const filtered = urls.filter(u => u.id !== id);
-  
-  if (filtered.length === urls.length) return false;
-  
-  await fs.writeFile(NOTIFICATION_URLS_FILE, JSON.stringify(filtered, null, 2), 'utf-8');
-  return true;
+export async function updateQRCode(id: string, data: Partial<QRCodeInfo>): Promise<void> {
+  await dbUpdateQRCode(id, data);
 }
+
+export async function deleteQRCode(id: string): Promise<void> {
+  await dbDeleteQRCode(id);
+}
+
+// 未匹配支付操作
+export async function saveUnmatchedPayment(data: Omit<UnmatchedPayment, 'id' | 'isProcessed' | 'processedOrderId'>): Promise<UnmatchedPayment> {
+  const result = await dbSaveUnmatchedPayment(data);
+  return {
+    ...result,
+    timestamp: new Date(result.timestamp),
+    paymentMethod: result.paymentMethod as 'alipay' | 'wechat',
+    customerType: result.customerType ?? undefined,
+    rawMessage: result.rawMessage ?? undefined,
+    isProcessed: result.isProcessed ?? false,
+    processedOrderId: result.processedOrderId ?? undefined
+  };
+}
+
+export async function getUnmatchedPayments(): Promise<UnmatchedPayment[]> {
+  const results = await dbGetUnmatchedPayments();
+  return results.map(r => ({
+    ...r,
+    timestamp: new Date(r.timestamp),
+    paymentMethod: r.paymentMethod as 'alipay' | 'wechat',
+    customerType: r.customerType ?? undefined,
+    rawMessage: r.rawMessage ?? undefined,
+    isProcessed: r.isProcessed ?? false,
+    processedOrderId: r.processedOrderId ?? undefined
+  }));
+}
+
+export async function confirmPaymentMatch(unmatchedId: string, orderId: string): Promise<void> {
+  await dbConfirmPaymentMatch(unmatchedId, orderId);
+}
+
+// 统计信息
+export async function getPaymentStatistics() {
+  return await dbGetPaymentStatistics();
+}
+
+// 兼容性函数 - 初始化相关
+export async function ensureDataStructure(): Promise<void> {
+  // PostgreSQL版本不需要初始化文件结构
+  console.log('✅ 数据库结构检查完成');
+}
+
+// 导出旧版本兼容的函数名
+export const initializeDatabase = ensureDataStructure;
+export const getStatistics = getPaymentStatistics;

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { confirmPaymentMatch } from '@/lib/payment-matcher';
-import { updateOrderStatus } from '../demo-order/route';
+import { updateOrderStatus } from '../orders/route';
 
 export async function POST(request: NextRequest) {
   try {

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const http = require('http');
+import http from 'http';
 
 // 配置
 const WEBHOOK_URL = 'http://localhost:3000/webhook';
@@ -50,7 +50,7 @@ function sendSimpleRequest(testType = 'valid') {
       console.log('响应体:');
       try {
         console.log(JSON.stringify(JSON.parse(data), null, 2));
-      } catch (e) {
+      } catch {
         console.log(data);
       }
       console.log('=========================\n');

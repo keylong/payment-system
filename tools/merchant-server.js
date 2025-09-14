@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-const http = require('http');
-const crypto = require('crypto');
+import http from 'http';
+import crypto from 'crypto';
 
 // 配置
 const PORT = 3001;
@@ -209,6 +209,6 @@ process.on('uncaughtException', (error) => {
   console.error('💥 未捕获的异常:', error);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason) => {
   console.error('💥 未处理的Promise拒绝:', reason);
 });

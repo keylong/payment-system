@@ -73,26 +73,28 @@ export function formatAmount(amount: number): string {
   return `¥${amount.toFixed(2)}`;
 }
 
-export function validateWebhookData(data: any): boolean {
+export function validateWebhookData(data: unknown): boolean {
   if (!data || typeof data !== 'object') {
     return false;
   }
 
+  // 类型断言，确保我们可以访问属性
+  const obj = data as Record<string, unknown>;
   const requiredFields = ['message', 'timestamp', 'source'];
   
   for (const field of requiredFields) {
-    if (!data[field]) {
+    if (!obj[field]) {
       console.log(`缺少必要字段: ${field}`);
       return false;
     }
   }
 
-  if (typeof data.message !== 'string' || data.message.trim() === '') {
+  if (typeof obj.message !== 'string' || obj.message.trim() === '') {
     console.log('消息内容无效');
     return false;
   }
 
-  const timestamp = new Date(data.timestamp);
+  const timestamp = new Date(obj.timestamp as string | number);
   if (isNaN(timestamp.getTime())) {
     console.log('时间戳无效');
     return false;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { parsePaymentMessage, validateWebhookData } from '@/lib/parser';
+import { parsePaymentMessage } from '@/lib/parser';
 import { savePaymentRecord } from '@/lib/database';
 import { notifyMerchant } from '@/lib/callback';
 import { webhookLimiter, getClientIp } from '@/lib/rate-limit';
@@ -14,8 +14,8 @@ export async function POST(request: NextRequest) {
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { error: '请求过于频繁，请稍后再试' },
-        { status: 429 },
         {
+          status: 429,
           headers: {
             'X-RateLimit-Limit': '100',
             'X-RateLimit-Remaining': '0',
@@ -67,9 +67,8 @@ export async function POST(request: NextRequest) {
     const { matchPayment } = await import('@/lib/payment-matcher');
     const matchResult = await matchPayment(
       paymentInfo.amount,
-      paymentInfo.paymentMethod,
-      `PAY${Date.now()}`,
-      new Date(timestamp)
+      paymentInfo.paymentMethod as 'alipay' | 'wechat',
+      `PAY${Date.now()}`
     );
 
     // 如果有有效的UID，优先使用UID
@@ -84,12 +83,18 @@ export async function POST(request: NextRequest) {
     }
 
     const record = await savePaymentRecord({
-      ...paymentInfo,
+      amount: paymentInfo.amount,
       uid: finalUid,
-      source,
+      paymentMethod: paymentInfo.paymentMethod === 'unknown' ? 'alipay' : paymentInfo.paymentMethod,
+      source: source as 'webhook',
+      status: 'success' as const,
       timestamp: new Date(timestamp),
+      customerType: paymentInfo.customerType ?? null,
       rawMessage: message,
-      matchConfidence: matchResult.confidence
+      matchConfidence: matchResult.confidence ?? null,
+      callbackStatus: 'pending' as const,
+      callbackUrl: null,
+      updatedAt: new Date()
     });
 
     // 如果匹配成功，检查订单是否过期再更新状态
@@ -99,7 +104,7 @@ export async function POST(request: NextRequest) {
       const isExpired = await checkOrderExpiration(matchResult.orderId);
       
       if (!isExpired) {
-        const { updateOrderStatus } = await import('../api/demo-order/route');
+        const { updateOrderStatus } = await import('../api/orders/route');
         await updateOrderStatus(matchResult.orderId, 'success', record.id);
         console.log(`订单 ${matchResult.orderId} 支付成功`);
       } else {

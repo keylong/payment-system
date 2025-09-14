@@ -1,47 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
+import { saveOrder, getOrders, getOrderById, updateOrder } from '@/lib/database';
 import { createPendingOrder } from '@/lib/payment-matcher';
-
-interface DemoOrder {
-  orderId: string;
-  productId: string;
-  productName: string;
-  amount: number;
-  displayAmount: number;  // 显示金额
-  actualAmount: number;   // 实际支付金额（含随机小额）
-  paymentMethod: 'alipay' | 'wechat';
-  status: 'pending' | 'success' | 'failed';
-  createdAt: Date;
-  paidAt?: Date;
-  paymentId?: string;
-}
-
-const ORDERS_FILE = path.join(process.cwd(), 'data', 'demo-orders.json');
-
-async function ensureOrdersFile() {
-  try {
-    await fs.access(ORDERS_FILE);
-  } catch {
-    await fs.writeFile(ORDERS_FILE, JSON.stringify([]), 'utf-8');
-  }
-}
-
-async function getOrders(): Promise<DemoOrder[]> {
-  await ensureOrdersFile();
-  const data = await fs.readFile(ORDERS_FILE, 'utf-8');
-  return JSON.parse(data);
-}
-
-async function saveOrders(orders: DemoOrder[]): Promise<void> {
-  await fs.writeFile(ORDERS_FILE, JSON.stringify(orders, null, 2), 'utf-8');
-}
+import type { DemoOrder } from '@/lib/database';
 
 // 创建订单
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { productId, productName, amount, paymentMethod } = body;
+    const { productName, amount, paymentMethod } = body;
 
     // 验证参数
     if (!productName || !amount || !paymentMethod) {
@@ -69,25 +35,21 @@ export async function POST(request: NextRequest) {
       true // 使用随机小额
     );
     
-    // 创建订单
-    const order: DemoOrder = {
+    // 创建订单对象
+    const orderData = {
       orderId,
-      productId: productId || 'custom',
       productName,
-      amount,
-      displayAmount: amount,      // 原始金额
-      actualAmount: actualAmount,  // 实际支付金额（包含随机小额）
+      amount: actualAmount,  // 使用实际支付金额
       paymentMethod,
-      status: 'pending',
-      createdAt: new Date()
+      status: 'pending' as const,
+      customerInfo: {},
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000) // 15分钟后过期（上海时间）
     };
 
-    // 保存订单
-    const orders = await getOrders();
-    orders.push(order);
-    await saveOrders(orders);
+    // 保存到数据库
+    const order = await saveOrder(orderData);
 
-    console.log('创建演示订单:', order);
+    console.log('创建订单:', order);
 
     return NextResponse.json({
       success: true,
@@ -115,10 +77,8 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const orderId = searchParams.get('orderId');
     
-    const orders = await getOrders();
-    
     if (orderId) {
-      const order = orders.find(o => o.orderId === orderId);
+      const order = await getOrderById(orderId);
       if (!order) {
         return NextResponse.json(
           { error: '订单不存在' },
@@ -128,13 +88,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(order);
     }
     
-    // 返回所有订单（最新的在前）
-    const sortedOrders = orders.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    // 获取所有订单
+    const orders = await getOrders();
     
     return NextResponse.json({
-      orders: sortedOrders.slice(0, 50), // 只返回最新50条
+      orders: orders.slice(0, 50), // 只返回最新50条
       total: orders.length
     });
 
@@ -154,23 +112,21 @@ export async function updateOrderStatus(
   paymentId?: string
 ): Promise<boolean> {
   try {
-    const orders = await getOrders();
-    const index = orders.findIndex(o => o.orderId === orderId);
+    const order = await getOrderById(orderId);
     
-    if (index === -1) {
+    if (!order) {
       console.log('订单不存在:', orderId);
       return false;
     }
     
-    orders[index].status = status;
-    if (status === 'success') {
-      orders[index].paidAt = new Date();
-      if (paymentId) {
-        orders[index].paymentId = paymentId;
-      }
+    const updateFields: Partial<DemoOrder> = {
+      status: status as 'success' | 'failed'
+    };
+    if (status === 'success' && paymentId) {
+      updateFields.paymentId = paymentId;
     }
     
-    await saveOrders(orders);
+    await updateOrder(orderId, updateFields);
     console.log('更新订单状态:', orderId, status);
     return true;
     
@@ -193,36 +149,45 @@ export async function PATCH(request: NextRequest) {
       );
     }
     
-    if (!['pending', 'success', 'failed'].includes(status)) {
+    if (!['pending', 'success', 'failed', 'expired'].includes(status)) {
       return NextResponse.json(
         { error: '无效的状态值' },
         { status: 400 }
       );
     }
     
-    const orders = await getOrders();
-    const index = orders.findIndex(o => o.orderId === orderId);
+    const order = await getOrderById(orderId);
     
-    if (index === -1) {
+    if (!order) {
       return NextResponse.json(
         { error: '订单不存在' },
         { status: 404 }
       );
     }
     
-    orders[index].status = status;
-    if (status === 'success' && !orders[index].paidAt) {
-      orders[index].paidAt = new Date();
-    } else if (status === 'pending') {
-      delete orders[index].paidAt;
-      delete orders[index].paymentId;
+    const updateFields: Partial<DemoOrder> = {
+      status: status as 'pending' | 'success' | 'failed' | 'expired'
+    };
+    
+    // 如果状态为pending，清除支付信息
+    if (status === 'pending') {
+      updateFields.paymentId = undefined;
     }
     
-    await saveOrders(orders);
+    await updateOrder(orderId, updateFields);
     
+    const statusTextMap = {
+      'success': '已支付',
+      'pending': '待支付', 
+      'failed': '失败',
+      'expired': '已过期'
+    } as const;
+    
+    const statusText = statusTextMap[status as keyof typeof statusTextMap] || status;
+
     return NextResponse.json({
       success: true,
-      message: `订单状态已更新为${status === 'success' ? '已支付' : status === 'pending' ? '待支付' : '失败'}`
+      message: `订单状态已更新为${statusText}`
     });
     
   } catch (error) {

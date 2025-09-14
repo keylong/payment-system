@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { validateEnvironment } from './env-validator';
 
 export interface WebhookSecurityConfig {
   apiKey: string;
@@ -106,9 +107,9 @@ export function validateWebhookRequest(
 }
 
 export function createWebhookPayload(
-  data: any,
+  data: unknown,
   apiKey: string
-): { payload: any; headers: Record<string, string> } {
+): { payload: unknown; headers: Record<string, string> } {
   const timestamp = Math.floor(Date.now() / 1000);
   const payloadString = JSON.stringify(data);
   const signature = generateWebhookSignature(payloadString, apiKey, timestamp);
@@ -126,7 +127,6 @@ export function createWebhookPayload(
 }
 
 export function getWebhookSecurityConfig(): WebhookSecurityConfig {
-  const { validateEnvironment } = require('./env-validator');
   const env = validateEnvironment();
   
   return {
