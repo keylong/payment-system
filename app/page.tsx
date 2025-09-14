@@ -275,7 +275,7 @@ export default function Home() {
         });
 
         if (res.ok) {
-          const data = await res.json();
+          await res.json();
           toast.success('强制回调已发送');
           fetchData();
         } else {
@@ -346,8 +346,6 @@ ${new Date().toISOString()}`
     }
   };
 
-  const pendingOrders = orders.filter(o => o.status === 'pending');
-  const completedOrders = orders.filter(o => o.status === 'success');
 
   // 认证检查中或数据加载中
   if (authLoading) {
@@ -496,7 +494,7 @@ ${new Date().toISOString()}`
                 待确认
                 {(stats?.unmatchedPayments || 0) > 0 && (
                   <span className="ml-1 sm:ml-2 inline-flex items-center justify-center px-1.5 py-0.5 sm:px-2 sm:py-1 text-xs font-bold leading-none text-white bg-orange-500 rounded-full">
-                    {stats.unmatchedPayments}
+                    {stats?.unmatchedPayments}
                   </span>
                 )}
               </button>

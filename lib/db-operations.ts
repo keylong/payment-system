@@ -79,7 +79,11 @@ export async function getDemoOrdersWithPaymentInfo(): Promise<(DemoOrder & { cal
     .leftJoin(payments, eq(demoOrders.paymentId, payments.id))
     .orderBy(desc(demoOrders.createdAt));
 
-  return ordersResult;
+  return ordersResult.map(order => ({
+    ...order,
+    callbackStatus: order.callbackStatus || undefined,
+    callbackUrl: order.callbackUrl || undefined
+  }));
 }
 
 export async function getDemoOrderById(orderId: string): Promise<DemoOrder | null> {

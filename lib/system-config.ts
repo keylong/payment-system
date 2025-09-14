@@ -285,7 +285,7 @@ export class SystemConfigManager {
   }
 
   // 获取JSON配置
-  async getJSON<T = any>(key: string, defaultValue?: T): Promise<T | null> {
+  async getJSON<T = unknown>(key: string, defaultValue?: T): Promise<T | null> {
     const value = await this.get(key);
     if (!value) return defaultValue || null;
     
@@ -350,4 +350,4 @@ export const getConfig = (key: string, defaultValue?: string) => systemConfig.ge
 export const setConfig = (key: string, value: string, description?: string) => systemConfig.set(key, value, description);
 export const getBooleanConfig = (key: string, defaultValue?: boolean) => systemConfig.getBoolean(key, defaultValue);
 export const getNumberConfig = (key: string, defaultValue?: number) => systemConfig.getNumber(key, defaultValue);
-export const getJSONConfig = <T = any>(key: string, defaultValue?: T) => systemConfig.getJSON<T>(key, defaultValue);
+export const getJSONConfig = <T = unknown>(key: string, defaultValue?: T) => systemConfig.getJSON<T>(key, defaultValue);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/components/ToastProvider';
 
 interface ConfigDefinition {
@@ -41,7 +41,7 @@ export default function SystemConfigManager() {
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
 
   // 加载配置数据
-  const fetchConfigs = async (category?: string) => {
+  const fetchConfigs = useCallback(async (category?: string) => {
     try {
       setLoading(true);
       const url = category ? `/api/system-config?category=${category}` : '/api/system-config';
@@ -67,11 +67,11 @@ export default function SystemConfigManager() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchConfigs(activeCategory);
-  }, [activeCategory]);
+  }, [activeCategory, fetchConfigs]);
 
   // 更新配置值
   const handleConfigChange = (key: string, value: string) => {
@@ -111,9 +111,9 @@ export default function SystemConfigManager() {
       // 重新加载配置
       await fetchConfigs(activeCategory);
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('保存配置失败:', error);
-      toast.error(error.message || '保存配置失败');
+      toast.error(error instanceof Error ? error.message : '保存配置失败');
     } finally {
       setSaving(false);
     }
@@ -142,9 +142,9 @@ export default function SystemConfigManager() {
       // 重新加载配置
       await fetchConfigs(activeCategory);
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('重置配置失败:', error);
-      toast.error(error.message || '重置配置失败');
+      toast.error(error instanceof Error ? error.message : '重置配置失败');
     }
   };
 

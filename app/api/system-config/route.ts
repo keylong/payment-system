@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { systemConfig, SYSTEM_CONFIGS, CONFIG_CATEGORIES, SystemConfigManager } from '@/lib/system-config';
+import { systemConfig, SYSTEM_CONFIGS, CONFIG_CATEGORIES } from '@/lib/system-config';
 import { isAuthenticated } from '@/lib/simple-auth';
 
 // 获取系统配置

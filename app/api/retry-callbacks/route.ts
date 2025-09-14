@@ -20,7 +20,7 @@ export async function POST(request: Request) {
         // 创建虚拟支付数据进行回调
         const callbackData = {
           orderId: order.orderId,
-          amount: order.actualAmount || order.amount,
+          amount: order.amount,
           uid: order.orderId, // 使用订单ID作为UID
           paymentMethod: order.paymentMethod || 'unknown',
           status: 'success',

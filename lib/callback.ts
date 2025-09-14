@@ -132,8 +132,8 @@ export async function sendCallbackNotification(callbackData: CallbackPayload): P
 
 export async function retrySinglePaymentCallback(paymentId: string): Promise<{success: boolean, error?: string}> {
   try {
-    const { getPaymentRecord } = await import('./database');
-    const record = await getPaymentRecord(paymentId);
+    const { getPaymentById } = await import('./database');
+    const record = await getPaymentById(paymentId);
     
     if (!record) {
       return { success: false, error: '找不到支付记录' };

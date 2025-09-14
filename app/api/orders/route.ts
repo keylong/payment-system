@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { saveOrder, getOrders, getOrderById, updateOrder, getDemoOrdersWithPaymentInfo } from '@/lib/database';
+import { saveOrder, getOrderById, updateOrder, getDemoOrdersWithPaymentInfo } from '@/lib/database';
 import { createPendingOrder } from '@/lib/payment-matcher';
 import type { DemoOrder } from '@/lib/database';
 
