@@ -1,4 +1,4 @@
-import { PaymentRecord, updatePaymentRecord } from './database';
+import { PaymentRecord, updatePaymentRecord, getDemoOrderByPaymentId } from './database';
 import { createMerchantRequest } from './merchant-crypto';
 import { formatShanghaiTime } from './timezone';
 import { getConfig } from './system-config';
@@ -28,8 +28,14 @@ export async function notifyMerchant(record: PaymentRecord): Promise<boolean> {
       return false;
     }
 
+    // 如果已通过智能匹配到订单，则使用匹配到的订单号作为回调的orderId；否则使用内部支付ID
+    // 若订单已关联到该支付，优先使用关联的订单号；否则如果UID看起来是订单号(ORD...)，用UID；最后回退为内部支付ID
+    const linkedOrder = await getDemoOrderByPaymentId(record.id);
+    const resolvedOrderId = linkedOrder?.orderId
+      || (typeof record.uid === 'string' && record.uid.startsWith('ORD') ? record.uid : record.id);
+
     const payload: CallbackPayload = {
-      orderId: record.id,
+      orderId: resolvedOrderId,
       amount: record.amount,
       uid: record.uid,
       paymentMethod: record.paymentMethod,
@@ -146,8 +152,13 @@ export async function retrySinglePaymentCallback(paymentId: string): Promise<{su
       return { success: false, error: '商户回调URL未配置' };
     }
 
+    // 如果该支付记录曾匹配到订单，使用匹配到的订单号
+    const linkedOrder = await getDemoOrderByPaymentId(record.id);
+    const resolvedOrderId = linkedOrder?.orderId
+      || (typeof record.uid === 'string' && record.uid.startsWith('ORD') ? record.uid : record.id);
+
     const payload: CallbackPayload = {
-      orderId: record.id,
+      orderId: resolvedOrderId,
       amount: record.amount,
       uid: record.uid,
       paymentMethod: record.paymentMethod,
@@ -224,4 +235,3 @@ export async function retryFailedCallbacks(): Promise<number> {
   console.log(`重试完成: ${successCount}/${failedRecords.length} 个回调成功`);
   return successCount;
 }
-

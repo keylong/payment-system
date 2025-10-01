@@ -91,6 +91,15 @@ export async function getDemoOrderById(orderId: string): Promise<DemoOrder | nul
   return order || null;
 }
 
+// 通过支付记录ID查找对应的订单（若已关联）
+export async function getDemoOrderByPaymentId(paymentId: string): Promise<DemoOrder | null> {
+  const [order] = await db
+    .select()
+    .from(demoOrders)
+    .where(eq(demoOrders.paymentId, paymentId));
+  return order || null;
+}
+
 export async function updateDemoOrder(orderId: string, data: Partial<DemoOrder>): Promise<void> {
   const updateData = { ...data, updatedAt: new Date() } as Partial<DemoOrder> & { updatedAt: Date };
   await db.update(demoOrders)

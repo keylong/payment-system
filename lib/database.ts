@@ -9,6 +9,7 @@ import {
   saveDemoOrder as dbSaveDemoOrder,
   getDemoOrders as dbGetDemoOrders,
   getDemoOrderById as dbGetDemoOrderById,
+  getDemoOrderByPaymentId as dbGetDemoOrderByPaymentId,
   updateDemoOrder as dbUpdateDemoOrder,
   getExpiredOrders as dbGetExpiredOrders,
   markExpiredOrders as dbMarkExpiredOrders,
@@ -218,6 +219,21 @@ export async function getOrders(): Promise<DemoOrder[]> {
 
 export async function getOrderById(orderId: string): Promise<DemoOrder | null> {
   return await getDemoOrderById(orderId);
+}
+
+export async function getDemoOrderByPaymentId(paymentId: string): Promise<DemoOrder | null> {
+  const result = await dbGetDemoOrderByPaymentId(paymentId);
+  if (!result) return null;
+
+  return {
+    ...result,
+    createdAt: new Date(result.createdAt),
+    expiresAt: new Date(result.expiresAt),
+    paymentMethod: result.paymentMethod as 'alipay' | 'wechat',
+    status: result.status as 'pending' | 'success' | 'failed' | 'expired',
+    paymentId: result.paymentId ?? undefined,
+    customerInfo: result.customerInfo ?? undefined
+  };
 }
 
 export async function updateOrder(orderId: string, data: Partial<DemoOrder>): Promise<void> {
