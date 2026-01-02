@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { saveOrder, getOrderById, updateOrder, getDemoOrdersWithPaymentInfo } from '@/lib/database';
 import { createPendingOrder } from '@/lib/payment-matcher';
+import { getMerchantById, getMerchantByCode, ensureDefaultMerchant } from '@/lib/db-operations';
 import type { DemoOrder } from '@/lib/database';
 
 // 创建订单
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { productName, amount, paymentMethod } = body;
+    const { productName, amount, paymentMethod, merchantId, merchantCode } = body;
 
     // 验证参数
     if (!productName || !amount || !paymentMethod) {
@@ -24,9 +25,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 确定商户ID
+    let resolvedMerchantId = 'default';
+
+    if (merchantId) {
+      // 直接使用商户ID
+      const merchant = await getMerchantById(merchantId);
+      if (merchant && merchant.isActive) {
+        resolvedMerchantId = merchantId;
+      } else {
+        return NextResponse.json(
+          { error: '商户不存在或已禁用' },
+          { status: 400 }
+        );
+      }
+    } else if (merchantCode) {
+      // 通过商户代码查找
+      const merchant = await getMerchantByCode(merchantCode);
+      if (merchant && merchant.isActive) {
+        resolvedMerchantId = merchant.id;
+      } else {
+        return NextResponse.json(
+          { error: '商户代码无效或商户已禁用' },
+          { status: 400 }
+        );
+      }
+    } else {
+      // 确保默认商户存在
+      await ensureDefaultMerchant();
+    }
+
     // 生成订单号
     const orderId = generateOrderId();
-    
+
     // 使用智能匹配系统创建待匹配订单
     const { amount: actualAmount, customAmount } = await createPendingOrder(
       orderId,
@@ -34,14 +65,15 @@ export async function POST(request: NextRequest) {
       paymentMethod,
       true // 使用随机小额
     );
-    
-    // 创建订单对象
+
+    // 创建订单对象，包含商户ID
     const orderData = {
       orderId,
       productName,
       amount: actualAmount,  // 使用实际支付金额
       paymentMethod,
       status: 'pending' as const,
+      merchantId: resolvedMerchantId, // 关联商户
       customerInfo: {},
       expiresAt: new Date(Date.now() + 15 * 60 * 1000) // 15分钟后过期（上海时间）
     };
@@ -49,7 +81,7 @@ export async function POST(request: NextRequest) {
     // 保存到数据库
     const order = await saveOrder(orderData);
 
-    console.log('创建订单:', order);
+    console.log('创建订单:', order, '商户ID:', resolvedMerchantId);
 
     return NextResponse.json({
       success: true,
@@ -57,7 +89,8 @@ export async function POST(request: NextRequest) {
       amount: actualAmount,  // 返回实际需要支付的金额
       displayAmount: amount,
       paymentMethod,
-      message: customAmount 
+      merchantId: resolvedMerchantId,
+      message: customAmount
         ? `订单创建成功！为避免金额重复，实际支付金额为 ¥${actualAmount.toFixed(2)}`
         : '订单创建成功！'
     });

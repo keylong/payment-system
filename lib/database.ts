@@ -40,6 +40,7 @@ export interface PaymentRecord {
   matchConfidence: number | null;
   callbackStatus: string | null;
   callbackUrl: string | null;
+  merchantId: string | null; // 商户ID
   timestamp: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -52,6 +53,7 @@ export interface DemoOrder {
   paymentMethod: 'alipay' | 'wechat';
   status: 'pending' | 'success' | 'failed' | 'expired';
   paymentId?: string;
+  merchantId?: string; // 商户ID
   customerInfo?: {
     name?: string;
     email?: string;

@@ -14,6 +14,7 @@ export const payments = pgTable('payments', {
   matchConfidence: real('match_confidence'),
   callbackStatus: text('callback_status').default('pending'), // 'pending' | 'sent' | 'failed'
   callbackUrl: text('callback_url'),
+  merchantId: text('merchant_id').default('default'), // 商户ID，默认为default兼容旧数据
   timestamp: timestamp('timestamp').notNull().defaultNow(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
@@ -27,6 +28,7 @@ export const demoOrders = pgTable('demo_orders', {
   paymentMethod: text('payment_method').notNull(), // 'alipay' | 'wechat'
   status: text('status').notNull().default('pending'), // 'pending' | 'success' | 'failed' | 'expired'
   paymentId: text('payment_id'),
+  merchantId: text('merchant_id').default('default'), // 商户ID，默认为default兼容旧数据
   customerInfo: jsonb('customer_info').$type<{
     name?: string;
     email?: string;
@@ -39,11 +41,16 @@ export const demoOrders = pgTable('demo_orders', {
 
 // 商户配置表
 export const merchants = pgTable('merchants', {
-  id: text('id').primaryKey().default('default'),
+  id: text('id').primaryKey().$defaultFn(() => 'MCH' + Date.now() + Math.random().toString(36).substring(2, 6)),
+  code: text('code').unique(), // 商户代码，用于API调用时识别商户
   callbackUrl: text('callback_url'),
   apiKey: text('api_key'),
   name: text('name').default('默认商户'),
   description: text('description'),
+  webhookSecret: text('webhook_secret'), // 商户webhook签名密钥
+  allowedIps: text('allowed_ips'), // 允许的IP白名单，逗号分隔
+  callbackRetryTimes: integer('callback_retry_times').default(3), // 回调重试次数
+  callbackTimeout: integer('callback_timeout').default(30), // 回调超时时间（秒）
   isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
@@ -84,6 +91,7 @@ export const pendingOrders = pgTable('pending_orders', {
   paymentMethod: text('payment_method').notNull(), // 'alipay' | 'wechat'
   status: text('status').notNull().default('pending'), // 'pending' | 'matched' | 'expired'
   customAmount: real('custom_amount'),
+  merchantId: text('merchant_id').default('default'), // 商户ID，默认为default兼容旧数据
   expiresAt: timestamp('expires_at').notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),

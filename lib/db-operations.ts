@@ -141,6 +141,84 @@ export async function updateMerchantConfig(data: Partial<Merchant>): Promise<voi
     .where(eq(merchants.id, 'default'));
 }
 
+// 多商户管理操作
+export async function getAllMerchants(): Promise<Merchant[]> {
+  return await db.select().from(merchants).orderBy(desc(merchants.createdAt));
+}
+
+export async function getActiveMerchants(): Promise<Merchant[]> {
+  return await db.select().from(merchants).where(eq(merchants.isActive, true)).orderBy(merchants.name);
+}
+
+export async function getMerchantById(id: string): Promise<Merchant | null> {
+  const [merchant] = await db.select().from(merchants).where(eq(merchants.id, id));
+  return merchant || null;
+}
+
+export async function getMerchantByCode(code: string): Promise<Merchant | null> {
+  const [merchant] = await db.select().from(merchants).where(eq(merchants.code, code));
+  return merchant || null;
+}
+
+export async function createMerchant(data: {
+  code: string;
+  name: string;
+  callbackUrl?: string;
+  apiKey?: string;
+  description?: string;
+  webhookSecret?: string;
+  allowedIps?: string;
+  callbackRetryTimes?: number;
+  callbackTimeout?: number;
+}): Promise<Merchant> {
+  const id = 'MCH' + Date.now() + Math.random().toString(36).substring(2, 6);
+  const [merchant] = await db.insert(merchants).values({
+    id,
+    code: data.code,
+    name: data.name,
+    callbackUrl: data.callbackUrl,
+    apiKey: data.apiKey,
+    description: data.description,
+    webhookSecret: data.webhookSecret,
+    allowedIps: data.allowedIps,
+    callbackRetryTimes: data.callbackRetryTimes ?? 3,
+    callbackTimeout: data.callbackTimeout ?? 30,
+    isActive: true,
+  }).returning();
+  return merchant;
+}
+
+export async function updateMerchant(id: string, data: Partial<Merchant>): Promise<void> {
+  await db.update(merchants)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(merchants.id, id));
+}
+
+export async function deleteMerchant(id: string): Promise<void> {
+  // 不允许删除默认商户
+  if (id === 'default') {
+    throw new Error('不能删除默认商户');
+  }
+  await db.delete(merchants).where(eq(merchants.id, id));
+}
+
+// 确保默认商户存在
+export async function ensureDefaultMerchant(): Promise<Merchant> {
+  let [merchant] = await db.select().from(merchants).where(eq(merchants.id, 'default'));
+
+  if (!merchant) {
+    [merchant] = await db.insert(merchants).values({
+      id: 'default',
+      code: 'default',
+      name: '默认商户',
+      description: '系统默认商户，用于向下兼容',
+      isActive: true,
+    }).returning();
+  }
+
+  return merchant;
+}
+
 // 二维码操作
 export async function getQRCodes(): Promise<QRCode[]> {
   return await db.select().from(qrCodes).orderBy(qrCodes.sortOrder, qrCodes.createdAt);

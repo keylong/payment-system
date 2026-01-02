@@ -10,6 +10,7 @@ import { isAuthenticated, logout, getAuthState } from '@/lib/client-auth';
 
 const QRCodeManager = dynamic(() => import('@/components/QRCodeManager'), { ssr: false });
 const SystemConfigManager = dynamic(() => import('@/components/SystemConfigManager'), { ssr: false });
+const MerchantManager = dynamic(() => import('@/components/MerchantManager'), { ssr: false });
 
 interface PaymentRecord {
   id: string;
@@ -73,7 +74,7 @@ interface Statistics {
 
 const ITEMS_PER_PAGE = 20;
 
-type TabType = 'orders' | 'unmatched' | 'payments' | 'qrcode' | 'system-config';
+type TabType = 'orders' | 'unmatched' | 'payments' | 'qrcode' | 'merchants' | 'system-config';
 
 export default function Home() {
   const router = useRouter();
@@ -519,6 +520,16 @@ ${new Date().toISOString()}`
                 二维码管理
               </button>
               <button
+                onClick={() => setActiveTab('merchants')}
+                className={`py-3 px-4 sm:px-6 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
+                  activeTab === 'merchants'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                商户管理
+              </button>
+              <button
                 onClick={() => setActiveTab('system-config')}
                 className={`py-3 px-4 sm:px-6 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                   activeTab === 'system-config'
@@ -945,6 +956,13 @@ ${new Date().toISOString()}`
             {activeTab === 'qrcode' && (
               <div>
                 <QRCodeManager />
+              </div>
+            )}
+
+            {/* 商户管理 Tab */}
+            {activeTab === 'merchants' && (
+              <div>
+                <MerchantManager />
               </div>
             )}
 

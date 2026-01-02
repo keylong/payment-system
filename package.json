@@ -12,7 +12,8 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:create": "node scripts/create-tables.js",
-    "db:migrate-data": "node scripts/migrate-data.js"
+    "db:migrate-data": "node scripts/migrate-data.js",
+    "db:migrate-multi-merchant": "node scripts/migrate-multi-merchant.js"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1",
