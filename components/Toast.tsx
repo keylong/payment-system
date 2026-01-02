@@ -36,17 +36,17 @@ const icons = {
 };
 
 const styles = {
-  success: 'bg-green-50 text-green-800 border-green-200 shadow-green-100',
-  error: 'bg-red-50 text-red-800 border-red-200 shadow-red-100',
-  info: 'bg-blue-50 text-blue-800 border-blue-200 shadow-blue-100',
-  warning: 'bg-yellow-50 text-yellow-800 border-yellow-200 shadow-yellow-100'
+  success: 'bg-green-50 text-green-800 border-green-200 shadow-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800',
+  error: 'bg-red-50 text-red-800 border-red-200 shadow-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
+  info: 'bg-blue-50 text-blue-800 border-blue-200 shadow-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
+  warning: 'bg-yellow-50 text-yellow-800 border-yellow-200 shadow-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800'
 };
 
 const iconColors = {
-  success: 'text-green-600',
-  error: 'text-red-600',
-  info: 'text-blue-600',
-  warning: 'text-yellow-600'
+  success: 'text-green-600 dark:text-green-400',
+  error: 'text-red-600 dark:text-red-400',
+  info: 'text-blue-600 dark:text-blue-400',
+  warning: 'text-yellow-600 dark:text-yellow-400'
 };
 
 export default function Toast({ id, type, message, duration = 3000, onClose }: ToastProps) {
@@ -89,7 +89,7 @@ export default function Toast({ id, type, message, duration = 3000, onClose }: T
       </div>
       <button
         onClick={handleClose}
-        className="flex-shrink-0 ml-2 p-1 rounded-full hover:bg-black/5 transition-colors group"
+        className="flex-shrink-0 ml-2 p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors group"
         aria-label="关闭通知"
       >
         <svg className="w-4 h-4 group-hover:opacity-75 transition-opacity" fill="currentColor" viewBox="0 0 20 20">

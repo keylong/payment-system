@@ -3,6 +3,9 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --card-bg: #ffffff;
+  --card-border: #e5e7eb;
+  --muted: #6b7280;
 }
 
 @theme inline {
@@ -12,10 +15,14 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* 深灰背景暗色主题 - 跟随系统设置 */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #1a1a1a;
     --foreground: #ededed;
+    --card-bg: #262626;
+    --card-border: #404040;
+    --muted: #a1a1aa;
   }
 }
 

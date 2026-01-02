@@ -99,14 +99,14 @@ export default function DemoShop() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-neutral-900 py-8">
       <div className="max-w-4xl mx-auto px-4">
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <h1 className="text-3xl font-bold text-center mb-8">演示商城 - 收款测试</h1>
-          
+        <div className="bg-white dark:bg-neutral-800 rounded-lg shadow-lg dark:shadow-neutral-900/50 p-6">
+          <h1 className="text-3xl font-bold text-center mb-8 dark:text-white">演示商城 - 收款测试</h1>
+
           {/* 提示信息 */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <p className="text-blue-800 text-sm">
+          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6">
+            <p className="text-blue-800 dark:text-blue-200 text-sm">
               💡 这是一个演示页面，用于测试收款系统的完整流程。
               选择商品或输入自定义金额后，将展示支付流程。
             </p>
@@ -114,7 +114,7 @@ export default function DemoShop() {
 
           {/* 商品列表 */}
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">选择测试商品</h2>
+            <h2 className="text-xl font-semibold mb-4 dark:text-white">选择测试商品</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {products.map(product => (
                 <div
@@ -125,14 +125,14 @@ export default function DemoShop() {
                   }}
                   className={`border rounded-lg p-4 cursor-pointer transition ${
                     selectedProduct?.id === product.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                      : 'border-gray-200 dark:border-neutral-700 hover:border-gray-300 dark:hover:border-neutral-600'
                   }`}
                 >
                   <div className="text-4xl text-center mb-2">{product.image}</div>
-                  <h3 className="font-semibold text-center">{product.name}</h3>
-                  <p className="text-gray-600 text-sm text-center mb-2">{product.description}</p>
-                  <p className="text-2xl font-bold text-center text-blue-600">
+                  <h3 className="font-semibold text-center dark:text-white">{product.name}</h3>
+                  <p className="text-gray-600 dark:text-neutral-300 text-sm text-center mb-2">{product.description}</p>
+                  <p className="text-2xl font-bold text-center text-blue-600 dark:text-blue-400">
                     ¥{product.price.toFixed(2)}
                   </p>
                 </div>
@@ -142,9 +142,9 @@ export default function DemoShop() {
 
           {/* 自定义金额 */}
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">或输入自定义金额</h2>
+            <h2 className="text-xl font-semibold mb-4 dark:text-white">或输入自定义金额</h2>
             <div className="flex items-center space-x-4">
-              <span className="text-lg">¥</span>
+              <span className="text-lg dark:text-white">¥</span>
               <input
                 type="number"
                 step="0.01"
@@ -155,21 +155,21 @@ export default function DemoShop() {
                   setSelectedProduct(null);
                 }}
                 placeholder="输入金额"
-                className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-neutral-700 dark:border-neutral-600 dark:text-white dark:placeholder-neutral-400"
               />
             </div>
           </div>
 
           {/* 支付方式选择 */}
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">选择支付方式</h2>
+            <h2 className="text-xl font-semibold mb-4 dark:text-white">选择支付方式</h2>
             <div className="flex space-x-4">
               <button
                 onClick={() => setPaymentMethod('alipay')}
                 className={`flex-1 py-3 rounded-lg border transition ${
                   paymentMethod === 'alipay'
                     ? 'bg-blue-500 text-white border-blue-500'
-                    : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                    : 'bg-white dark:bg-neutral-800 text-gray-700 dark:text-neutral-200 border-gray-300 dark:border-neutral-600 hover:border-gray-400 dark:hover:border-neutral-500'
                 }`}
               >
                 <span className="text-lg">支付宝</span>
@@ -179,7 +179,7 @@ export default function DemoShop() {
                 className={`flex-1 py-3 rounded-lg border transition ${
                   paymentMethod === 'wechat'
                     ? 'bg-green-500 text-white border-green-500'
-                    : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                    : 'bg-white dark:bg-neutral-800 text-gray-700 dark:text-neutral-200 border-gray-300 dark:border-neutral-600 hover:border-gray-400 dark:hover:border-neutral-500'
                 }`}
               >
                 <span className="text-lg">微信支付</span>
@@ -189,16 +189,16 @@ export default function DemoShop() {
 
           {/* 订单信息 */}
           {(selectedProduct || customAmount) && (
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <h3 className="font-semibold mb-2">订单信息</h3>
-              <div className="space-y-1 text-sm">
+            <div className="bg-gray-50 dark:bg-neutral-900 rounded-lg p-4 mb-6">
+              <h3 className="font-semibold mb-2 dark:text-white">订单信息</h3>
+              <div className="space-y-1 text-sm dark:text-neutral-300">
                 <div className="flex justify-between">
                   <span>商品名称：</span>
                   <span>{selectedProduct?.name || '自定义金额'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>支付金额：</span>
-                  <span className="font-bold text-lg text-red-600">
+                  <span className="font-bold text-lg text-red-600 dark:text-red-400">
                     ¥{(customAmount ? parseFloat(customAmount) : selectedProduct?.price || 0).toFixed(2)}
                   </span>
                 </div>
@@ -216,7 +216,7 @@ export default function DemoShop() {
             disabled={isCreatingOrder || (!selectedProduct && !customAmount)}
             className={`w-full py-3 rounded-lg font-semibold transition ${
               isCreatingOrder || (!selectedProduct && !customAmount)
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                ? 'bg-gray-300 dark:bg-neutral-600 text-gray-500 dark:text-neutral-400 cursor-not-allowed'
                 : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}
           >
@@ -224,7 +224,7 @@ export default function DemoShop() {
           </button>
 
           {/* 说明 */}
-          <div className="mt-6 text-sm text-gray-600">
+          <div className="mt-6 text-sm text-gray-600 dark:text-neutral-300">
             <p className="mb-2">📌 测试流程说明：</p>
             <ol className="list-decimal list-inside space-y-1">
               <li>选择商品或输入自定义金额</li>

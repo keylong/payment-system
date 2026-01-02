@@ -105,47 +105,47 @@ export default function MerchantCryptoDemo() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
-      <h1 className="text-3xl font-bold mb-6 text-center">商户端API加密方式演示</h1>
-      
+    <div className="container mx-auto p-6 max-w-6xl dark:bg-neutral-900 min-h-screen">
+      <h1 className="text-3xl font-bold mb-6 text-center dark:text-white">商户端API加密方式演示</h1>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 左侧：参数配置 */}
         <div className="space-y-4">
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">1. 配置参数</h2>
-            
+          <div className="bg-white dark:bg-neutral-800 p-4 rounded-lg shadow dark:shadow-neutral-900/50">
+            <h2 className="text-xl font-semibold mb-4 dark:text-white">1. 配置参数</h2>
+
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-1">
                   API密钥
                 </label>
                 <input
                   type="text"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-neutral-700 dark:text-white"
                   placeholder="输入API密钥"
                 />
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-1">
                   数据载荷 (JSON)
                 </label>
                 <textarea
                   value={payload}
                   onChange={(e) => setPayload(e.target.value)}
                   rows={8}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm dark:bg-neutral-700 dark:text-white"
                   placeholder="输入要签名的JSON数据"
                 />
               </div>
             </div>
           </div>
-          
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <h3 className="font-medium text-blue-800 mb-2">签名算法说明：</h3>
-            <ol className="text-sm text-blue-700 space-y-1">
+
+          <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg">
+            <h3 className="font-medium text-blue-800 dark:text-blue-200 mb-2">签名算法说明：</h3>
+            <ol className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
               <li>1. 添加时间戳 (timestamp) 和随机数 (nonce)</li>
               <li>2. 添加API密钥参数 (api_key)</li>
               <li>3. 按参数名字典序排序</li>
@@ -154,12 +154,12 @@ export default function MerchantCryptoDemo() {
             </ol>
           </div>
         </div>
-        
+
         {/* 右侧：结果显示 */}
         <div className="space-y-4">
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">2. 生成签名</h2>
-            
+          <div className="bg-white dark:bg-neutral-800 p-4 rounded-lg shadow dark:shadow-neutral-900/50">
+            <h2 className="text-xl font-semibold mb-4 dark:text-white">2. 生成签名</h2>
+
             <button
               onClick={generateSignature}
               disabled={loading}
@@ -167,24 +167,24 @@ export default function MerchantCryptoDemo() {
             >
               {loading ? '生成中...' : '生成签名'}
             </button>
-            
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-1">
                 签名结果
               </label>
               <textarea
                 value={result}
                 readOnly
                 rows={12}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 font-mono text-xs"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-neutral-600 rounded-md bg-gray-50 dark:bg-neutral-900 font-mono text-xs dark:text-white"
                 placeholder="点击生成签名按钮查看结果"
               />
             </div>
           </div>
-          
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">3. 验证回调</h2>
-            
+
+          <div className="bg-white dark:bg-neutral-800 p-4 rounded-lg shadow dark:shadow-neutral-900/50">
+            <h2 className="text-xl font-semibold mb-4 dark:text-white">3. 验证回调</h2>
+
             <button
               onClick={testCallback}
               disabled={loading || !result}
@@ -192,54 +192,54 @@ export default function MerchantCryptoDemo() {
             >
               {loading ? '验证中...' : '测试回调验证'}
             </button>
-            
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-1">
                 验证结果
               </label>
               <textarea
                 value={verifyResult}
                 readOnly
                 rows={6}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 font-mono text-xs"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-neutral-600 rounded-md bg-gray-50 dark:bg-neutral-900 font-mono text-xs dark:text-white"
                 placeholder="点击测试回调验证按钮查看结果"
               />
             </div>
           </div>
         </div>
       </div>
-      
+
       {/* 底部：代码示例 */}
-      <div className="mt-8 bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold mb-4">代码示例</h2>
-        
+      <div className="mt-8 bg-white dark:bg-neutral-800 p-6 rounded-lg shadow dark:shadow-neutral-900/50">
+        <h2 className="text-xl font-semibold mb-4 dark:text-white">代码示例</h2>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <h3 className="font-medium mb-2">Node.js 示例</h3>
-            <pre className="bg-gray-100 p-3 rounded text-xs overflow-x-auto">
+            <h3 className="font-medium mb-2 dark:text-white">Node.js 示例</h3>
+            <pre className="bg-gray-100 dark:bg-neutral-900 p-3 rounded text-xs overflow-x-auto dark:text-neutral-300">
 {`const crypto = require('crypto');
 
 function signMerchantData(data, apiKey) {
   const timestamp = Math.floor(Date.now() / 1000);
   const nonce = Math.random().toString(36).substring(2, 18);
-  
+
   const signParams = {
     ...data,
     timestamp,
     nonce,
     api_key: apiKey
   };
-  
+
   const sortedKeys = Object.keys(signParams).sort();
   const signString = sortedKeys
     .map(key => \`\${key}=\${signParams[key]}\`)
     .join('&');
-  
+
   const signature = crypto
     .createHmac('sha256', apiKey)
     .update(signString)
     .digest('hex');
-  
+
   return {
     ...data,
     timestamp,
@@ -249,10 +249,10 @@ function signMerchantData(data, apiKey) {
 }`}
             </pre>
           </div>
-          
+
           <div>
-            <h3 className="font-medium mb-2">Python 示例</h3>
-            <pre className="bg-gray-100 p-3 rounded text-xs overflow-x-auto">
+            <h3 className="font-medium mb-2 dark:text-white">Python 示例</h3>
+            <pre className="bg-gray-100 dark:bg-neutral-900 p-3 rounded text-xs overflow-x-auto dark:text-neutral-300">
 {`import json
 import time
 import hmac
@@ -263,23 +263,23 @@ import string
 def sign_merchant_data(data, api_key):
     timestamp = int(time.time())
     nonce = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
-    
+
     sign_params = {
         **data,
         'timestamp': timestamp,
         'nonce': nonce,
         'api_key': api_key
     }
-    
+
     sorted_keys = sorted(sign_params.keys())
     sign_string = '&'.join([f'{k}={sign_params[k]}' for k in sorted_keys])
-    
+
     signature = hmac.new(
         api_key.encode('utf-8'),
         sign_string.encode('utf-8'),
         hashlib.sha256
     ).hexdigest()
-    
+
     return {
         **data,
         'timestamp': timestamp,

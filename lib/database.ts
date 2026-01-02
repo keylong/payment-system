@@ -146,7 +146,7 @@ export async function saveDemoOrder(data: Omit<DemoOrder, 'createdAt'>): Promise
     createdAt: new Date(),
     updatedAt: new Date()
   });
-  
+
   return {
     ...result,
     createdAt: new Date(result.createdAt),
@@ -154,7 +154,8 @@ export async function saveDemoOrder(data: Omit<DemoOrder, 'createdAt'>): Promise
     paymentMethod: result.paymentMethod as 'alipay' | 'wechat',
     status: result.status as 'pending' | 'success' | 'failed' | 'expired',
     paymentId: result.paymentId ?? undefined,
-    customerInfo: result.customerInfo ?? undefined
+    customerInfo: result.customerInfo ?? undefined,
+    merchantId: result.merchantId ?? undefined
   };
 }
 
@@ -167,7 +168,8 @@ export async function getDemoOrders(): Promise<DemoOrder[]> {
     paymentMethod: r.paymentMethod as 'alipay' | 'wechat',
     status: r.status as 'pending' | 'success' | 'failed' | 'expired',
     paymentId: r.paymentId ?? undefined,
-    customerInfo: r.customerInfo ?? undefined
+    customerInfo: r.customerInfo ?? undefined,
+    merchantId: r.merchantId ?? undefined
   }));
 }
 
@@ -186,6 +188,7 @@ export async function getDemoOrdersWithPaymentInfo(): Promise<DemoOrderWithPayme
     status: r.status as 'pending' | 'success' | 'failed' | 'expired',
     paymentId: r.paymentId ?? undefined,
     customerInfo: r.customerInfo ?? undefined,
+    merchantId: r.merchantId ?? undefined,
     callbackStatus: r.callbackStatus ?? undefined,
     callbackUrl: r.callbackUrl ?? undefined
   }));
@@ -194,7 +197,7 @@ export async function getDemoOrdersWithPaymentInfo(): Promise<DemoOrderWithPayme
 export async function getDemoOrderById(orderId: string): Promise<DemoOrder | null> {
   const result = await dbGetDemoOrderById(orderId);
   if (!result) return null;
-  
+
   return {
     ...result,
     createdAt: new Date(result.createdAt),
@@ -202,7 +205,8 @@ export async function getDemoOrderById(orderId: string): Promise<DemoOrder | nul
     paymentMethod: result.paymentMethod as 'alipay' | 'wechat',
     status: result.status as 'pending' | 'success' | 'failed' | 'expired',
     paymentId: result.paymentId ?? undefined,
-    customerInfo: result.customerInfo ?? undefined
+    customerInfo: result.customerInfo ?? undefined,
+    merchantId: result.merchantId ?? undefined
   };
 }
 
@@ -234,7 +238,8 @@ export async function getDemoOrderByPaymentId(paymentId: string): Promise<DemoOr
     paymentMethod: result.paymentMethod as 'alipay' | 'wechat',
     status: result.status as 'pending' | 'success' | 'failed' | 'expired',
     paymentId: result.paymentId ?? undefined,
-    customerInfo: result.customerInfo ?? undefined
+    customerInfo: result.customerInfo ?? undefined,
+    merchantId: result.merchantId ?? undefined
   };
 }
 
@@ -251,7 +256,8 @@ export async function getExpiredOrders(): Promise<DemoOrder[]> {
     paymentMethod: r.paymentMethod as 'alipay' | 'wechat',
     status: r.status as 'pending' | 'success' | 'failed' | 'expired',
     paymentId: r.paymentId ?? undefined,
-    customerInfo: r.customerInfo ?? undefined
+    customerInfo: r.customerInfo ?? undefined,
+    merchantId: r.merchantId ?? undefined
   }));
 }
 

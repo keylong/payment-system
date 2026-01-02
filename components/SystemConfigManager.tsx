@@ -165,7 +165,7 @@ export default function SystemConfigManager() {
     return (
       <div key={config.key} className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-gray-700 dark:text-neutral-200">
             {config.label}
             {config.required && <span className="text-red-500 ml-1">*</span>}
           </label>
@@ -178,9 +178,9 @@ export default function SystemConfigManager() {
             </button>
           )}
         </div>
-        
+
         {config.description && (
-          <p className="text-xs text-gray-500">{config.description}</p>
+          <p className="text-xs text-gray-500 dark:text-neutral-400">{config.description}</p>
         )}
 
         <div className="relative">
@@ -188,7 +188,7 @@ export default function SystemConfigManager() {
             <select
               value={value}
               onChange={(e) => handleConfigChange(config.key, e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:bg-neutral-700 dark:border-neutral-600 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="true">是</option>
               <option value="false">否</option>
@@ -199,7 +199,7 @@ export default function SystemConfigManager() {
               onChange={(e) => handleConfigChange(config.key, e.target.value)}
               placeholder={config.placeholder}
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+              className="w-full px-3 py-2 border border-gray-300 dark:bg-neutral-700 dark:border-neutral-600 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
             />
           ) : (
             <input
@@ -208,7 +208,7 @@ export default function SystemConfigManager() {
               onChange={(e) => handleConfigChange(config.key, e.target.value)}
               placeholder={config.placeholder}
               required={config.required}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:bg-neutral-700 dark:border-neutral-600 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           )}
           
@@ -219,12 +219,12 @@ export default function SystemConfigManager() {
               className="absolute inset-y-0 right-0 pr-3 flex items-center"
             >
               {showPassword ? (
-                <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-4 w-4 text-gray-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
               ) : (
-                <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-4 w-4 text-gray-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
                 </svg>
               )}
@@ -233,7 +233,7 @@ export default function SystemConfigManager() {
         </div>
 
         {config.defaultValue && (
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-400 dark:text-neutral-500">
             默认值: {config.sensitive ? '***' : config.defaultValue}
           </p>
         )}
@@ -244,7 +244,7 @@ export default function SystemConfigManager() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-600">加载系统配置...</div>
+        <div className="text-gray-600 dark:text-neutral-300">加载系统配置...</div>
       </div>
     );
   }
@@ -252,8 +252,8 @@ export default function SystemConfigManager() {
   if (!data) {
     return (
       <div className="text-center py-12">
-        <div className="text-gray-600">加载配置失败</div>
-        <button 
+        <div className="text-gray-600 dark:text-neutral-300">加载配置失败</div>
+        <button
           onClick={() => fetchConfigs(activeCategory)}
           className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
@@ -268,7 +268,7 @@ export default function SystemConfigManager() {
   return (
     <div className="max-w-4xl mx-auto">
       {/* 分类导航 */}
-      <div className="mb-6 border-b">
+      <div className="mb-6 border-b dark:border-neutral-700">
         <nav className="-mb-px flex space-x-8 overflow-x-auto">
           {Object.entries(data.categories).map(([key, label]) => (
             <button
@@ -277,7 +277,7 @@ export default function SystemConfigManager() {
               className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                 activeCategory === key
                   ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  : 'border-transparent text-gray-500 dark:text-neutral-400 hover:text-gray-700 dark:hover:text-neutral-200'
               }`}
             >
               <span className="mr-2">
@@ -290,15 +290,15 @@ export default function SystemConfigManager() {
       </div>
 
       {/* 配置表单 */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white dark:bg-neutral-800 rounded-lg shadow p-6">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold">
+          <h3 className="text-lg font-semibold dark:text-white">
             {CONFIG_ICONS[activeCategory as keyof typeof CONFIG_ICONS] || '⚙️'} {data.categories[activeCategory]}
           </h3>
           <div className="flex space-x-3">
             <button
               onClick={() => handleReset(categoryConfigs.map(c => c.key))}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-300 dark:border-neutral-600 text-gray-700 dark:text-neutral-200 rounded hover:bg-gray-50 dark:hover:bg-neutral-700"
             >
               重置全部
             </button>
@@ -313,13 +313,13 @@ export default function SystemConfigManager() {
         </div>
 
         {categoryConfigs.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-gray-500 dark:text-neutral-400">
             该分类下暂无配置项
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
             {categoryConfigs.map(config => (
-              <div key={config.key} className="border border-gray-200 rounded-lg p-4">
+              <div key={config.key} className="border border-gray-200 dark:border-neutral-700 rounded-lg p-4">
                 {renderConfigField(config)}
               </div>
             ))}
@@ -328,9 +328,9 @@ export default function SystemConfigManager() {
       </div>
 
       {/* 帮助信息 */}
-      <div className="mt-6 bg-blue-50 rounded-lg p-4">
-        <h4 className="font-semibold text-blue-800 mb-2">💡 配置说明</h4>
-        <ul className="space-y-1 text-sm text-blue-700">
+      <div className="mt-6 bg-blue-50 dark:bg-neutral-800 rounded-lg p-4">
+        <h4 className="font-semibold text-blue-800 dark:text-blue-400 mb-2">💡 配置说明</h4>
+        <ul className="space-y-1 text-sm text-blue-700 dark:text-blue-300">
           <li>• 标有 * 的配置项为必填项</li>
           <li>• 密码类型的配置项将加密存储</li>
           <li>• 配置更改后立即生效，无需重启系统</li>

@@ -69,6 +69,7 @@ export async function getDemoOrdersWithPaymentInfo(): Promise<(DemoOrder & { cal
       status: demoOrders.status,
       paymentId: demoOrders.paymentId,
       customerInfo: demoOrders.customerInfo,
+      merchantId: demoOrders.merchantId,
       expiresAt: demoOrders.expiresAt,
       createdAt: demoOrders.createdAt,
       updatedAt: demoOrders.updatedAt,

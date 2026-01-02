@@ -94,6 +94,7 @@ export async function POST(request: NextRequest) {
       matchConfidence: matchResult.confidence ?? null,
       callbackStatus: 'pending' as const,
       callbackUrl: null,
+      merchantId: null,
       updatedAt: new Date()
     });
 

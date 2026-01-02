@@ -154,9 +154,9 @@ export default function QRCodeManager() {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-white dark:bg-neutral-800 rounded-lg shadow p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold">收款二维码管理</h2>
+        <h2 className="text-xl font-semibold dark:text-neutral-100">收款二维码管理</h2>
         <button
           onClick={() => setShowUpload(!showUpload)}
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -167,15 +167,15 @@ export default function QRCodeManager() {
 
       {/* 上传表单 */}
       {showUpload && (
-        <div className="bg-gray-50 rounded-lg p-4 mb-6">
-          <h3 className="font-semibold mb-4">上传新的收款二维码</h3>
-          
+        <div className="bg-gray-50 dark:bg-neutral-900 rounded-lg p-4 mb-6">
+          <h3 className="font-semibold mb-4 dark:text-neutral-100">上传新的收款二维码</h3>
+
           <div className="space-y-4">
             {/* 支付方式选择 */}
             <div>
-              <label className="block text-sm font-medium mb-2">支付方式</label>
+              <label className="block text-sm font-medium mb-2 dark:text-neutral-200">支付方式</label>
               <div className="flex space-x-4">
-                <label className="flex items-center">
+                <label className="flex items-center dark:text-neutral-200">
                   <input
                     type="radio"
                     value="alipay"
@@ -185,7 +185,7 @@ export default function QRCodeManager() {
                   />
                   支付宝
                 </label>
-                <label className="flex items-center">
+                <label className="flex items-center dark:text-neutral-200">
                   <input
                     type="radio"
                     value="wechat"
@@ -200,9 +200,9 @@ export default function QRCodeManager() {
 
             {/* 金额设置 */}
             <div>
-              <label className="block text-sm font-medium mb-2">金额设置</label>
+              <label className="block text-sm font-medium mb-2 dark:text-neutral-200">金额设置</label>
               <div className="space-y-2">
-                <label className="flex items-center">
+                <label className="flex items-center dark:text-neutral-200">
                   <input
                     type="radio"
                     value="any"
@@ -212,7 +212,7 @@ export default function QRCodeManager() {
                   />
                   任意金额
                 </label>
-                <label className="flex items-center">
+                <label className="flex items-center dark:text-neutral-200">
                   <input
                     type="radio"
                     value="fixed"
@@ -228,11 +228,11 @@ export default function QRCodeManager() {
                       value={fixedAmount}
                       onChange={(e) => setFixedAmount(e.target.value)}
                       placeholder="输入金额"
-                      className="ml-2 px-2 py-1 border rounded w-24"
+                      className="ml-2 px-2 py-1 border dark:bg-neutral-700 dark:border-neutral-600 dark:text-white rounded w-24"
                     />
                   )}
                 </label>
-                <label className="flex items-center">
+                <label className="flex items-center dark:text-neutral-200">
                   <input
                     type="radio"
                     value="range"
@@ -249,7 +249,7 @@ export default function QRCodeManager() {
                         value={minAmount}
                         onChange={(e) => setMinAmount(e.target.value)}
                         placeholder="最小"
-                        className="px-2 py-1 border rounded w-20"
+                        className="px-2 py-1 border dark:bg-neutral-700 dark:border-neutral-600 dark:text-white rounded w-20"
                       />
                       <span>-</span>
                       <input
@@ -258,7 +258,7 @@ export default function QRCodeManager() {
                         value={maxAmount}
                         onChange={(e) => setMaxAmount(e.target.value)}
                         placeholder="最大"
-                        className="px-2 py-1 border rounded w-20"
+                        className="px-2 py-1 border dark:bg-neutral-700 dark:border-neutral-600 dark:text-white rounded w-20"
                       />
                     </div>
                   )}
@@ -268,15 +268,15 @@ export default function QRCodeManager() {
 
             {/* 文件上传 */}
             <div>
-              <label className="block text-sm font-medium mb-2">选择二维码图片</label>
+              <label className="block text-sm font-medium mb-2 dark:text-neutral-200">选择二维码图片</label>
               <input
                 type="file"
                 accept="image/*"
                 onChange={handleFileUpload}
                 disabled={uploading}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                className="block w-full text-sm text-gray-500 dark:text-neutral-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               />
-              {uploading && <p className="text-sm text-gray-500 mt-1">上传中...</p>}
+              {uploading && <p className="text-sm text-gray-500 dark:text-neutral-400 mt-1">上传中...</p>}
             </div>
           </div>
         </div>
@@ -285,19 +285,19 @@ export default function QRCodeManager() {
       {/* 二维码列表 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {qrCodes.map((qr) => (
-          <div key={qr.id} className="border rounded-lg p-4">
+          <div key={qr.id} className="border border-gray-200 dark:border-neutral-700 rounded-lg p-4 dark:bg-neutral-900">
             <div className="mb-2">
               <Image
                 src={qr.image}
                 alt={`${qr.type}二维码`}
                 width={300}
                 height={192}
-                className="w-full h-48 object-contain bg-gray-50 rounded"
+                className="w-full h-48 object-contain bg-gray-50 dark:bg-neutral-800 rounded"
               />
             </div>
             <div className="space-y-1 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">类型：</span>
+                <span className="text-gray-600 dark:text-neutral-300">类型：</span>
                 <span className={`px-2 py-1 rounded text-xs ${
                   qr.type === 'alipay' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
                 }`}>
@@ -306,19 +306,19 @@ export default function QRCodeManager() {
               </div>
               {qr.fixedAmount && (
                 <div className="flex justify-between">
-                  <span className="text-gray-600">固定金额：</span>
-                  <span>¥{qr.fixedAmount}</span>
+                  <span className="text-gray-600 dark:text-neutral-300">固定金额：</span>
+                  <span className="dark:text-neutral-200">¥{qr.fixedAmount}</span>
                 </div>
               )}
               {qr.minAmount && qr.maxAmount && (
                 <div className="flex justify-between">
-                  <span className="text-gray-600">金额范围：</span>
-                  <span>¥{qr.minAmount}-{qr.maxAmount}</span>
+                  <span className="text-gray-600 dark:text-neutral-300">金额范围：</span>
+                  <span className="dark:text-neutral-200">¥{qr.minAmount}-{qr.maxAmount}</span>
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-gray-600">状态：</span>
-                <span className={`text-xs ${qr.isActive ? 'text-green-600' : 'text-gray-500'}`}>
+                <span className="text-gray-600 dark:text-neutral-300">状态：</span>
+                <span className={`text-xs ${qr.isActive ? 'text-green-600' : 'text-gray-500 dark:text-neutral-400'}`}>
                   {qr.isActive ? '启用' : '禁用'}
                 </span>
               </div>
@@ -326,16 +326,16 @@ export default function QRCodeManager() {
             <div className="mt-3 flex space-x-2">
               <button
                 onClick={() => deleteQRCode(qr.id)}
-                className="flex-1 px-3 py-1 text-sm border border-red-300 text-red-600 rounded hover:bg-red-50"
+                className="flex-1 px-3 py-1 text-sm border border-red-300 dark:border-red-600 text-red-600 dark:text-red-400 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
               >
                 删除
               </button>
             </div>
           </div>
         ))}
-        
+
         {qrCodes.length === 0 && (
-          <div className="col-span-full text-center py-8 text-gray-500">
+          <div className="col-span-full text-center py-8 text-gray-500 dark:text-neutral-400">
             暂无二维码，请上传收款二维码
           </div>
         )}

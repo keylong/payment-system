@@ -340,10 +340,10 @@ ${new Date().toISOString()}`
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'success': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'failed': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'success': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+      case 'failed': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-neutral-700 dark:text-neutral-200';
     }
   };
 
@@ -351,29 +351,29 @@ ${new Date().toISOString()}`
   // 认证检查中或数据加载中
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-xl text-gray-600">检查登录状态...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-900">
+        <div className="text-xl text-gray-600 dark:text-neutral-300">检查登录状态...</div>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-xl text-gray-600">加载中...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-900">
+        <div className="text-xl text-gray-600 dark:text-neutral-300">加载中...</div>
       </div>
     );
   }
 
   return (
-    <main className="min-h-screen p-4 sm:p-6 lg:p-8 bg-gray-50">
+    <main className="min-h-screen p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-neutral-900">
       <div className="max-w-7xl mx-auto">
         {/* 头部 */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 space-y-4 sm:space-y-0">
           <div className="flex flex-col">
-            <h1 className="text-2xl sm:text-3xl font-bold">收款系统管理后台</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold dark:text-white">收款系统管理后台</h1>
             {userInfo.username && (
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-600 dark:text-neutral-400 mt-1">
                 欢迎，{userInfo.username}
               </p>
             )}
@@ -398,7 +398,7 @@ ${new Date().toISOString()}`
               商户加密演示
             </a>
             <div className="flex items-center gap-2">
-              <label className="text-xs sm:text-sm whitespace-nowrap">自动刷新</label>
+              <label className="text-xs sm:text-sm whitespace-nowrap dark:text-neutral-300">自动刷新</label>
               <input
                 type="checkbox"
                 checked={autoRefresh}
@@ -409,7 +409,7 @@ ${new Date().toISOString()}`
                 <select
                   value={refreshInterval}
                   onChange={(e) => setRefreshInterval(Number(e.target.value))}
-                  className="px-2 py-1 border rounded text-xs sm:text-sm"
+                  className="px-2 py-1 border rounded text-xs sm:text-sm dark:bg-neutral-700 dark:border-neutral-600 dark:text-white"
                 >
                   <option value={5000}>5秒</option>
                   <option value={10000}>10秒</option>
@@ -436,17 +436,17 @@ ${new Date().toISOString()}`
         {/* 统计信息 */}
         {stats && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-6 sm:mb-8">
-            <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
-              <h3 className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2">待支付订单</h3>
-              <p className="text-lg sm:text-2xl font-bold text-yellow-600">{stats.pendingOrders || 0}</p>
+            <div className="bg-white dark:bg-neutral-800 p-3 sm:p-4 rounded-lg shadow dark:shadow-neutral-900/50">
+              <h3 className="text-xs sm:text-sm text-gray-500 dark:text-neutral-400 mb-1 sm:mb-2">待支付订单</h3>
+              <p className="text-lg sm:text-2xl font-bold text-yellow-600 dark:text-yellow-400">{stats.pendingOrders || 0}</p>
             </div>
-            <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
-              <h3 className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2">已完成订单</h3>
-              <p className="text-lg sm:text-2xl font-bold text-green-600">{stats.successOrders || 0}</p>
+            <div className="bg-white dark:bg-neutral-800 p-3 sm:p-4 rounded-lg shadow dark:shadow-neutral-900/50">
+              <h3 className="text-xs sm:text-sm text-gray-500 dark:text-neutral-400 mb-1 sm:mb-2">已完成订单</h3>
+              <p className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400">{stats.successOrders || 0}</p>
             </div>
-            <div className="bg-white p-3 sm:p-4 rounded-lg shadow relative">
-              <h3 className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2">待确认支付</h3>
-              <p className="text-lg sm:text-2xl font-bold text-orange-600">{stats.unmatchedPayments || 0}</p>
+            <div className="bg-white dark:bg-neutral-800 p-3 sm:p-4 rounded-lg shadow dark:shadow-neutral-900/50 relative">
+              <h3 className="text-xs sm:text-sm text-gray-500 dark:text-neutral-400 mb-1 sm:mb-2">待确认支付</h3>
+              <p className="text-lg sm:text-2xl font-bold text-orange-600 dark:text-orange-400">{stats.unmatchedPayments || 0}</p>
               {(stats.unmatchedPayments || 0) > 0 && (
                 <span className="absolute top-2 right-2 flex h-2 w-2 sm:h-3 sm:w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
@@ -454,32 +454,32 @@ ${new Date().toISOString()}`
                 </span>
               )}
             </div>
-            <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
-              <h3 className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2">今日订单</h3>
-              <p className="text-lg sm:text-2xl font-bold">{stats.todayOrders || 0}</p>
+            <div className="bg-white dark:bg-neutral-800 p-3 sm:p-4 rounded-lg shadow dark:shadow-neutral-900/50">
+              <h3 className="text-xs sm:text-sm text-gray-500 dark:text-neutral-400 mb-1 sm:mb-2">今日订单</h3>
+              <p className="text-lg sm:text-2xl font-bold dark:text-white">{stats.todayOrders || 0}</p>
             </div>
-            <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
-              <h3 className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2">今日金额</h3>
-              <p className="text-lg sm:text-2xl font-bold">{formatAmount(stats.todayAmount || 0)}</p>
+            <div className="bg-white dark:bg-neutral-800 p-3 sm:p-4 rounded-lg shadow dark:shadow-neutral-900/50">
+              <h3 className="text-xs sm:text-sm text-gray-500 dark:text-neutral-400 mb-1 sm:mb-2">今日金额</h3>
+              <p className="text-lg sm:text-2xl font-bold dark:text-white">{formatAmount(stats.todayAmount || 0)}</p>
             </div>
-            <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
-              <h3 className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2">总金额</h3>
-              <p className="text-lg sm:text-2xl font-bold">{formatAmount(stats.totalAmount || 0)}</p>
+            <div className="bg-white dark:bg-neutral-800 p-3 sm:p-4 rounded-lg shadow dark:shadow-neutral-900/50">
+              <h3 className="text-xs sm:text-sm text-gray-500 dark:text-neutral-400 mb-1 sm:mb-2">总金额</h3>
+              <p className="text-lg sm:text-2xl font-bold dark:text-white">{formatAmount(stats.totalAmount || 0)}</p>
             </div>
           </div>
         )}
 
 
         {/* Tab 导航 */}
-        <div className="bg-white rounded-lg shadow mb-6">
-          <div className="border-b">
+        <div className="bg-white dark:bg-neutral-800 rounded-lg shadow dark:shadow-neutral-900/50 mb-6">
+          <div className="border-b dark:border-neutral-700">
             <nav className="-mb-px flex overflow-x-auto">
               <button
                 onClick={() => setActiveTab('orders')}
                 className={`py-3 px-4 sm:px-6 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                   activeTab === 'orders'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-neutral-400 dark:hover:text-neutral-200'
                 }`}
               >
                 订单管理
@@ -488,8 +488,8 @@ ${new Date().toISOString()}`
                 onClick={() => setActiveTab('unmatched')}
                 className={`py-3 px-4 sm:px-6 border-b-2 font-medium text-xs sm:text-sm relative whitespace-nowrap ${
                   activeTab === 'unmatched'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-neutral-400 dark:hover:text-neutral-200'
                 }`}
               >
                 待确认
@@ -503,8 +503,8 @@ ${new Date().toISOString()}`
                 onClick={() => setActiveTab('payments')}
                 className={`py-3 px-4 sm:px-6 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                   activeTab === 'payments'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-neutral-400 dark:hover:text-neutral-200'
                 }`}
               >
                 支付记录
@@ -513,8 +513,8 @@ ${new Date().toISOString()}`
                 onClick={() => setActiveTab('qrcode')}
                 className={`py-3 px-4 sm:px-6 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                   activeTab === 'qrcode'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-neutral-400 dark:hover:text-neutral-200'
                 }`}
               >
                 二维码管理
@@ -523,8 +523,8 @@ ${new Date().toISOString()}`
                 onClick={() => setActiveTab('merchants')}
                 className={`py-3 px-4 sm:px-6 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                   activeTab === 'merchants'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-neutral-400 dark:hover:text-neutral-200'
                 }`}
               >
                 商户管理
@@ -533,8 +533,8 @@ ${new Date().toISOString()}`
                 onClick={() => setActiveTab('system-config')}
                 className={`py-3 px-4 sm:px-6 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                   activeTab === 'system-config'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-neutral-400 dark:hover:text-neutral-200'
                 }`}
               >
                 系统设置
@@ -550,26 +550,26 @@ ${new Date().toISOString()}`
                 {/* 移动端卡片视图 */}
                 <div className="block sm:hidden space-y-4">
                   {paginatedOrders.map(order => (
-                    <div key={order.orderId} className="bg-gray-50 rounded-lg p-4">
+                    <div key={order.orderId} className="bg-gray-50 dark:bg-neutral-900 rounded-lg p-4">
                       <div className="flex justify-between items-start mb-2">
-                        <div className="text-sm font-mono text-gray-600 truncate flex-1 mr-2">
+                        <div className="text-sm font-mono text-gray-600 dark:text-neutral-400 truncate flex-1 mr-2">
                           {order.orderId}
                         </div>
                         <span className={`px-2 py-1 rounded text-xs ${getStatusColor(order.status)}`}>
-                          {order.status === 'pending' ? '待支付' : 
+                          {order.status === 'pending' ? '待支付' :
                            order.status === 'success' ? '已支付' : '失败'}
                         </span>
                       </div>
-                      <div className="text-sm font-medium mb-2">{order.productName}</div>
-                      <div className="flex justify-between text-sm text-gray-600 mb-2">
+                      <div className="text-sm font-medium mb-2 dark:text-neutral-200">{order.productName}</div>
+                      <div className="flex justify-between text-sm text-gray-600 dark:text-neutral-400 mb-2">
                         <span>显示: {formatAmount(order.displayAmount || order.amount)}</span>
-                        <span className="font-bold">实际: {formatAmount(order.actualAmount || order.amount)}</span>
+                        <span className="font-bold dark:text-white">实际: {formatAmount(order.actualAmount || order.amount)}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className={`px-2 py-1 rounded text-xs ${
-                          order.paymentMethod === 'alipay' 
-                            ? 'bg-blue-100 text-blue-800' 
-                            : 'bg-green-100 text-green-800'
+                          order.paymentMethod === 'alipay'
+                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                            : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                         }`}>
                           {order.paymentMethod === 'alipay' ? '支付宝' : '微信'}
                         </span>
@@ -577,7 +577,7 @@ ${new Date().toISOString()}`
                           {order.status === 'pending' && (
                             <button
                               onClick={() => updateOrderStatus(order.orderId, 'success')}
-                              className="text-green-600 hover:text-green-800"
+                              className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
                             >
                               标记已付
                             </button>
@@ -585,25 +585,25 @@ ${new Date().toISOString()}`
                           {order.status === 'success' && (
                             <button
                               onClick={() => retryCallback(order.orderId)}
-                              className="text-blue-600 hover:text-blue-800"
+                              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                             >
                               重试回调
                             </button>
                           )}
                         </div>
                       </div>
-                      <div className="text-xs text-gray-500 mt-2">
+                      <div className="text-xs text-gray-500 dark:text-neutral-500 mt-2">
                         {formatShanghaiTime(new Date(order.createdAt))}
                       </div>
                       {order.status === 'success' && order.callbackStatus && (
-                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200">
-                          <span className="text-xs text-gray-500">回调状态:</span>
+                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200 dark:border-neutral-700">
+                          <span className="text-xs text-gray-500 dark:text-neutral-500">回调状态:</span>
                           <span className={`px-2 py-1 rounded text-xs ${
-                            order.callbackStatus === 'sent' ? 'bg-green-100 text-green-800' : 
-                            order.callbackStatus === 'failed' ? 'bg-red-100 text-red-800' :
-                            'bg-yellow-100 text-yellow-800'
+                            order.callbackStatus === 'sent' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                            order.callbackStatus === 'failed' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                            'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
                           }`}>
-                            {order.callbackStatus === 'sent' ? '已发送' : 
+                            {order.callbackStatus === 'sent' ? '已发送' :
                              order.callbackStatus === 'failed' ? '发送失败' : '待发送'}
                           </span>
                         </div>
@@ -615,65 +615,65 @@ ${new Date().toISOString()}`
                 {/* 桌面端表格视图 */}
                 <div className="hidden sm:block overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 dark:bg-neutral-900">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">订单号</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">商品</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">显示金额</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">实际金额</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">支付方式</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">回调状态</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">创建时间</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase">订单号</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase">商品</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase">显示金额</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase">实际金额</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase">支付方式</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase">状态</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase">回调状态</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase">创建时间</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase">操作</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody className="divide-y divide-gray-200 dark:divide-neutral-700">
                       {paginatedOrders.map(order => (
-                        <tr key={order.orderId} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm font-mono">{order.orderId}</td>
-                          <td className="px-4 py-3 text-sm">{order.productName}</td>
-                          <td className="px-4 py-3 text-sm">
+                        <tr key={order.orderId} className="hover:bg-gray-50 dark:hover:bg-neutral-700/50">
+                          <td className="px-4 py-3 text-sm font-mono dark:text-neutral-300">{order.orderId}</td>
+                          <td className="px-4 py-3 text-sm dark:text-neutral-300">{order.productName}</td>
+                          <td className="px-4 py-3 text-sm dark:text-neutral-300">
                             {formatAmount(order.displayAmount || order.amount)}
                           </td>
-                          <td className="px-4 py-3 text-sm font-bold">
+                          <td className="px-4 py-3 text-sm font-bold dark:text-white">
                             {formatAmount(order.actualAmount || order.amount)}
                             {order.actualAmount && order.actualAmount !== order.displayAmount && (
-                              <span className="ml-1 text-xs text-orange-600">
+                              <span className="ml-1 text-xs text-orange-600 dark:text-orange-400">
                                 (+{((order.actualAmount - (order.displayAmount || order.amount)) * 100).toFixed(0)}分叠数)
                               </span>
                             )}
                           </td>
                           <td className="px-4 py-3 text-sm">
                             <span className={`px-2 py-1 rounded text-xs ${
-                              order.paymentMethod === 'alipay' 
-                                ? 'bg-blue-100 text-blue-800' 
-                                : 'bg-green-100 text-green-800'
+                              order.paymentMethod === 'alipay'
+                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                                : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                             }`}>
                               {order.paymentMethod === 'alipay' ? '支付宝' : '微信'}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-sm">
                             <span className={`px-2 py-1 rounded text-xs ${getStatusColor(order.status)}`}>
-                              {order.status === 'pending' ? '待支付' : 
+                              {order.status === 'pending' ? '待支付' :
                                order.status === 'success' ? '已支付' : '失败'}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-sm">
                             {order.status === 'success' && order.callbackStatus ? (
                               <span className={`px-2 py-1 rounded text-xs ${
-                                order.callbackStatus === 'sent' ? 'bg-green-100 text-green-800' : 
-                                order.callbackStatus === 'failed' ? 'bg-red-100 text-red-800' :
-                                'bg-yellow-100 text-yellow-800'
+                                order.callbackStatus === 'sent' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                                order.callbackStatus === 'failed' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                                'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
                               }`}>
-                                {order.callbackStatus === 'sent' ? '已发送' : 
+                                {order.callbackStatus === 'sent' ? '已发送' :
                                  order.callbackStatus === 'failed' ? '发送失败' : '待发送'}
                               </span>
                             ) : (
-                              <span className="text-gray-400">-</span>
+                              <span className="text-gray-400 dark:text-neutral-500">-</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-500">
+                          <td className="px-4 py-3 text-sm text-gray-500 dark:text-neutral-400">
                             {formatShanghaiTime(new Date(order.createdAt))}
                           </td>
                           <td className="px-4 py-3 text-sm">
@@ -681,7 +681,7 @@ ${new Date().toISOString()}`
                               {order.status === 'pending' && (
                                 <button
                                   onClick={() => updateOrderStatus(order.orderId, 'success')}
-                                  className="text-green-600 hover:text-green-800"
+                                  className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
                                 >
                                   标记已付
                                 </button>
@@ -690,13 +690,13 @@ ${new Date().toISOString()}`
                                 <>
                                   <button
                                     onClick={() => retryCallback(order.orderId)}
-                                    className="text-blue-600 hover:text-blue-800"
+                                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                                   >
                                     重试回调
                                   </button>
                                   <button
                                     onClick={() => updateOrderStatus(order.orderId, 'pending')}
-                                    className="text-yellow-600 hover:text-yellow-800"
+                                    className="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300"
                                   >
                                     标记未付
                                   </button>
@@ -709,7 +709,7 @@ ${new Date().toISOString()}`
                     </tbody>
                   </table>
                   {orders.length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
+                    <div className="text-center py-8 text-gray-500 dark:text-neutral-400">
                       暂无订单
                     </div>
                   )}
@@ -723,44 +723,44 @@ ${new Date().toISOString()}`
                 {/* 移动端卡片视图 */}
                 <div className="block sm:hidden space-y-4">
                   {paginatedPayments.map((payment) => (
-                    <div key={payment.id} className="bg-gray-50 rounded-lg p-4">
+                    <div key={payment.id} className="bg-gray-50 dark:bg-neutral-900 rounded-lg p-4">
                       <div className="flex justify-between items-start mb-2">
-                        <div className="text-sm font-mono text-gray-600 truncate flex-1 mr-2">
+                        <div className="text-sm font-mono text-gray-600 dark:text-neutral-300 truncate flex-1 mr-2">
                           {payment.id}
                         </div>
-                        <div className="text-lg font-bold text-green-600">
+                        <div className="text-lg font-bold text-green-600 dark:text-green-400">
                           {formatAmount(payment.amount)}
                         </div>
                       </div>
-                      <div className="text-sm text-gray-600 mb-2">
+                      <div className="text-sm text-gray-600 dark:text-neutral-300 mb-2">
                         UID: {payment.uid}
                       </div>
                       <div className="flex justify-between items-center mb-2">
                         <span className={`px-2 py-1 rounded text-xs ${
-                          payment.paymentMethod === 'alipay' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                          payment.paymentMethod === 'alipay' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                         }`}>
                           {payment.paymentMethod === 'alipay' ? '支付宝' : '微信'}
                         </span>
-                        <span className="text-sm text-gray-600">
+                        <span className="text-sm text-gray-600 dark:text-neutral-300">
                           {payment.customerType || '-'}
                         </span>
                       </div>
                       <div className="flex justify-between items-center mb-2">
                         <span className={`px-2 py-1 rounded text-xs ${
-                          payment.status === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          payment.status === 'success' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                         }`}>
                           {payment.status === 'success' ? '成功' : '失败'}
                         </span>
                         <span className={`px-2 py-1 rounded text-xs ${
-                          payment.callbackStatus === 'sent' ? 'bg-green-100 text-green-800' : 
-                          payment.callbackStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
+                          payment.callbackStatus === 'sent' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                          payment.callbackStatus === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                          'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                         }`}>
-                          {payment.callbackStatus === 'sent' ? '已发送' : 
+                          {payment.callbackStatus === 'sent' ? '已发送' :
                            payment.callbackStatus === 'pending' ? '待发送' : '失败'}
                         </span>
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-gray-500 dark:text-neutral-400">
                         {formatShanghaiTime(new Date(payment.createdAt))}
                       </div>
                     </div>
@@ -770,50 +770,50 @@ ${new Date().toISOString()}`
                 {/* 桌面端表格视图 */}
                 <div className="hidden sm:block overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 dark:bg-neutral-900">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">支付ID</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">金额</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">UID/订单号</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">支付方式</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">客户类型</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">回调状态</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">时间</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase">支付ID</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase">金额</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase">UID/订单号</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase">支付方式</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase">客户类型</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase">状态</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase">回调状态</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase">时间</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody className="divide-y divide-gray-200 dark:divide-neutral-700">
                       {paginatedPayments.map((payment) => (
-                        <tr key={payment.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 text-sm font-medium">{payment.id}</td>
-                          <td className="px-6 py-4 text-sm">{formatAmount(payment.amount)}</td>
-                          <td className="px-6 py-4 text-sm">{payment.uid}</td>
+                        <tr key={payment.id} className="hover:bg-gray-50 dark:hover:bg-neutral-700/50">
+                          <td className="px-6 py-4 text-sm font-medium dark:text-neutral-300">{payment.id}</td>
+                          <td className="px-6 py-4 text-sm dark:text-neutral-300">{formatAmount(payment.amount)}</td>
+                          <td className="px-6 py-4 text-sm dark:text-neutral-300">{payment.uid}</td>
                           <td className="px-6 py-4 text-sm">
                             <span className={`px-2 py-1 rounded text-xs ${
-                              payment.paymentMethod === 'alipay' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                              payment.paymentMethod === 'alipay' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                             }`}>
                               {payment.paymentMethod === 'alipay' ? '支付宝' : '微信'}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-sm">{payment.customerType || '-'}</td>
+                          <td className="px-6 py-4 text-sm dark:text-neutral-300">{payment.customerType || '-'}</td>
                           <td className="px-6 py-4 text-sm">
                             <span className={`px-2 py-1 rounded text-xs ${
-                              payment.status === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              payment.status === 'success' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                             }`}>
                               {payment.status === 'success' ? '成功' : '失败'}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-sm">
                             <span className={`px-2 py-1 rounded text-xs ${
-                              payment.callbackStatus === 'sent' ? 'bg-green-100 text-green-800' : 
-                              payment.callbackStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
+                              payment.callbackStatus === 'sent' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                              payment.callbackStatus === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                              'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                             }`}>
-                              {payment.callbackStatus === 'sent' ? '已发送' : 
+                              {payment.callbackStatus === 'sent' ? '已发送' :
                                payment.callbackStatus === 'pending' ? '待发送' : '失败'}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-500">
+                          <td className="px-6 py-4 text-sm text-gray-500 dark:text-neutral-400">
                             {formatShanghaiTime(new Date(payment.createdAt))}
                           </td>
                         </tr>
@@ -821,7 +821,7 @@ ${new Date().toISOString()}`
                     </tbody>
                   </table>
                   {payments.length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
+                    <div className="text-center py-8 text-gray-500 dark:text-neutral-400">
                       暂无支付记录
                     </div>
                   )}
@@ -834,22 +834,22 @@ ${new Date().toISOString()}`
               <div>
                 {unmatchedPayments.length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-                      <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full mb-4">
+                      <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                       </svg>
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-800 mb-2">没有待确认的支付</h3>
-                    <p className="text-gray-600">所有支付都已成功匹配到对应订单</p>
+                    <h3 className="text-xl font-semibold text-gray-800 dark:text-neutral-200 mb-2">没有待确认的支付</h3>
+                    <p className="text-gray-600 dark:text-neutral-400">所有支付都已成功匹配到对应订单</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4">
                       <div className="flex items-start">
-                        <svg className="w-5 h-5 text-yellow-600 mt-0.5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-500 mt-0.5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                         </svg>
-                        <div className="text-sm text-yellow-800">
+                        <div className="text-sm text-yellow-800 dark:text-yellow-300">
                           <p className="font-semibold mb-1">需要手动确认的支付</p>
                           <p>这些支付无法自动匹配到订单，请选择对应的订单或忽略无效支付</p>
                         </div>
@@ -857,50 +857,50 @@ ${new Date().toISOString()}`
                     </div>
 
                     {unmatchedPayments.map(payment => (
-                      <div key={payment.id} className="bg-white border rounded-lg p-3 sm:p-4 md:p-6">
+                      <div key={payment.id} className="bg-white dark:bg-neutral-800 border dark:border-neutral-700 rounded-lg p-3 sm:p-4 md:p-6">
                         <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0">
                           {/* 支付信息 */}
                           <div>
-                            <h4 className="font-semibold mb-3 text-sm sm:text-base">支付信息</h4>
+                            <h4 className="font-semibold mb-3 text-sm sm:text-base dark:text-white">支付信息</h4>
                             <div className="space-y-2 text-xs sm:text-sm">
                               <div className="flex justify-between">
-                                <span className="text-gray-600">支付ID：</span>
-                                <span className="font-mono text-xs">{payment.id}</span>
+                                <span className="text-gray-600 dark:text-neutral-400">支付ID：</span>
+                                <span className="font-mono text-xs dark:text-neutral-300">{payment.id}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-gray-600">支付金额：</span>
-                                <span className="font-bold text-base sm:text-lg text-green-600">¥{payment.amount.toFixed(2)}</span>
+                                <span className="text-gray-600 dark:text-neutral-400">支付金额：</span>
+                                <span className="font-bold text-base sm:text-lg text-green-600 dark:text-green-400">¥{payment.amount.toFixed(2)}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-gray-600">支付方式：</span>
+                                <span className="text-gray-600 dark:text-neutral-400">支付方式：</span>
                                 <span className={`px-2 py-1 rounded text-xs ${
-                                  payment.paymentMethod === 'alipay' 
-                                    ? 'bg-blue-100 text-blue-800' 
-                                    : 'bg-green-100 text-green-800'
+                                  payment.paymentMethod === 'alipay'
+                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                                    : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                                 }`}>
                                   {payment.paymentMethod === 'alipay' ? '支付宝' : '微信'}
                                 </span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-gray-600">收款时间：</span>
-                                <span className="text-xs">{formatShanghaiTime(new Date(payment.createdAt))}</span>
+                                <span className="text-gray-600 dark:text-neutral-400">收款时间：</span>
+                                <span className="text-xs dark:text-neutral-300">{formatShanghaiTime(new Date(payment.createdAt))}</span>
                               </div>
                             </div>
                           </div>
 
                           {/* 右侧：匹配操作 */}
                           <div>
-                            <h4 className="font-semibold mb-3">匹配订单</h4>
+                            <h4 className="font-semibold mb-3 dark:text-white">匹配订单</h4>
                             {payment.possibleOrderIds && payment.possibleOrderIds.length > 0 ? (
                               <div className="space-y-3">
-                                <p className="text-sm text-gray-600">找到 {payment.possibleOrderIds.length} 个可能的订单：</p>
+                                <p className="text-sm text-gray-600 dark:text-neutral-400">找到 {payment.possibleOrderIds.length} 个可能的订单：</p>
                                 <select
                                   onChange={(e) => {
                                     if (e.target.value) {
                                       confirmMatch(payment.id, e.target.value);
                                     }
                                   }}
-                                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  className="w-full px-3 py-2 border dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-neutral-700 dark:text-white"
                                 >
                                   <option value="">请选择订单</option>
                                   {payment.possibleOrderIds.map(orderId => {
@@ -921,23 +921,23 @@ ${new Date().toISOString()}`
                                   </button>
                                   <button
                                     onClick={() => ignorePayment(payment.id)}
-                                    className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 text-sm"
+                                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-neutral-600 text-gray-700 dark:text-neutral-300 rounded hover:bg-gray-50 dark:hover:bg-neutral-700 text-sm"
                                   >
                                     忽略此支付
                                   </button>
                                 </div>
                               </div>
                             ) : (
-                              <div className="bg-red-50 rounded-lg p-3 sm:p-4">
-                                <p className="text-sm text-red-700 mb-2">
+                              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3 sm:p-4">
+                                <p className="text-sm text-red-700 dark:text-red-400 mb-2">
                                   ⚠️ 没有找到匹配的订单
                                 </p>
-                                <p className="text-xs text-red-600 mb-3">
+                                <p className="text-xs text-red-600 dark:text-red-300 mb-3">
                                   可能原因：金额不匹配、订单已支付、订单已取消
                                 </p>
                                 <button
                                   onClick={() => ignorePayment(payment.id)}
-                                  className="w-full px-3 py-2 border border-red-300 text-red-700 rounded hover:bg-red-50 text-sm"
+                                  className="w-full px-3 py-2 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-400 rounded hover:bg-red-50 dark:hover:bg-red-900/30 text-sm"
                                 >
                                   忽略此支付
                                 </button>
@@ -978,17 +978,17 @@ ${new Date().toISOString()}`
           {/* 分页 - 移动端优化 */}
           {((activeTab === 'orders' && orders.length > ITEMS_PER_PAGE) ||
             (activeTab === 'payments' && payments.length > ITEMS_PER_PAGE)) && (
-            <div className="px-3 sm:px-6 py-4 border-t flex justify-center items-center">
+            <div className="px-3 sm:px-6 py-4 border-t dark:border-neutral-700 flex justify-center items-center">
               {/* 移动端简化分页 */}
               <div className="flex items-center space-x-1 sm:space-x-2">
                 <button
                   onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
-                  className="px-2 sm:px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  className="px-2 sm:px-3 py-1 text-sm border dark:border-neutral-600 dark:text-neutral-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-neutral-700"
                 >
                   上一页
                 </button>
-                
+
                 {/* 移动端显示页码信息 */}
                 <div className="hidden sm:flex space-x-1">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -1002,15 +1002,15 @@ ${new Date().toISOString()}`
                     } else {
                       pageNum = currentPage - 2 + i;
                     }
-                    
+
                     return (
                       <button
                         key={pageNum}
                         onClick={() => setCurrentPage(pageNum)}
-                        className={`px-3 py-1 text-sm border rounded ${
-                          currentPage === pageNum 
-                            ? 'bg-blue-600 text-white' 
-                            : 'hover:bg-gray-50'
+                        className={`px-3 py-1 text-sm border dark:border-neutral-600 rounded ${
+                          currentPage === pageNum
+                            ? 'bg-blue-600 text-white'
+                            : 'hover:bg-gray-50 dark:hover:bg-neutral-700 dark:text-neutral-300'
                         }`}
                       >
                         {pageNum}
@@ -1018,16 +1018,16 @@ ${new Date().toISOString()}`
                     );
                   })}
                 </div>
-                
+
                 {/* 移动端简化页码显示 */}
-                <div className="sm:hidden px-3 py-1 text-sm text-gray-600 bg-gray-50 rounded">
+                <div className="sm:hidden px-3 py-1 text-sm text-gray-600 dark:text-neutral-300 bg-gray-50 dark:bg-neutral-800 rounded">
                   {currentPage} / {totalPages}
                 </div>
-                
+
                 <button
                   onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-2 sm:px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  className="px-2 sm:px-3 py-1 text-sm border dark:border-neutral-600 dark:text-neutral-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-neutral-700"
                 >
                   下一页
                 </button>

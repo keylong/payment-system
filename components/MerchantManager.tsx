@@ -207,7 +207,7 @@ export default function MerchantManager() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-500">加载中...</div>
+        <div className="text-gray-500 dark:text-neutral-400">加载中...</div>
       </div>
     );
   }
@@ -218,7 +218,7 @@ export default function MerchantManager() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-xl font-bold">商户管理</h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 dark:text-neutral-400 mt-1">
             管理不同项目/网站的回调配置
           </p>
         </div>
@@ -236,8 +236,8 @@ export default function MerchantManager() {
       {/* 商户列表 */}
       <div className="space-y-4">
         {merchants.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg">
-            <div className="text-gray-500 mb-4">暂无商户</div>
+          <div className="text-center py-12 bg-gray-50 dark:bg-neutral-900 rounded-lg">
+            <div className="text-gray-500 dark:text-neutral-400 mb-4">暂无商户</div>
             <button
               onClick={handleCreate}
               className="text-blue-600 hover:text-blue-800"
@@ -249,7 +249,7 @@ export default function MerchantManager() {
           merchants.map((merchant) => (
             <div
               key={merchant.id}
-              className={`bg-white border rounded-lg p-4 sm:p-6 ${
+              className={`bg-white dark:bg-neutral-800 border dark:border-neutral-700 rounded-lg p-4 sm:p-6 ${
                 !merchant.isActive ? 'opacity-60' : ''
               }`}
             >
@@ -258,7 +258,7 @@ export default function MerchantManager() {
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="text-lg font-semibold">{merchant.name}</h3>
-                    <span className="px-2 py-1 text-xs rounded bg-gray-100 text-gray-600 font-mono">
+                    <span className="px-2 py-1 text-xs rounded bg-gray-100 dark:bg-neutral-800 text-gray-600 dark:text-neutral-300 font-mono">
                       {merchant.code}
                     </span>
                     {merchant.id === 'default' && (
@@ -278,28 +278,28 @@ export default function MerchantManager() {
                   </div>
 
                   {merchant.description && (
-                    <p className="text-sm text-gray-600 mb-3">{merchant.description}</p>
+                    <p className="text-sm text-gray-600 dark:text-neutral-300 mb-3">{merchant.description}</p>
                   )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-500">回调URL:</span>
+                      <span className="text-gray-500 dark:text-neutral-400">回调URL:</span>
                       <span className="font-mono text-xs truncate max-w-[200px]">
                         {merchant.callbackUrl || '-'}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-500">API密钥:</span>
+                      <span className="text-gray-500 dark:text-neutral-400">API密钥:</span>
                       <span className="font-mono text-xs">
                         {merchant.apiKey ? '••••••••' : '-'}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-500">重试次数:</span>
+                      <span className="text-gray-500 dark:text-neutral-400">重试次数:</span>
                       <span>{merchant.callbackRetryTimes || 3} 次</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-500">超时时间:</span>
+                      <span className="text-gray-500 dark:text-neutral-400">超时时间:</span>
                       <span>{merchant.callbackTimeout || 30} 秒</span>
                     </div>
                   </div>
@@ -309,13 +309,13 @@ export default function MerchantManager() {
                 <div className="flex sm:flex-col gap-2">
                   <button
                     onClick={() => handleEdit(merchant)}
-                    className="flex-1 sm:flex-none px-3 py-2 text-sm border rounded hover:bg-gray-50"
+                    className="flex-1 sm:flex-none px-3 py-2 text-sm border dark:border-neutral-600 rounded hover:bg-gray-50 dark:hover:bg-neutral-700"
                   >
                     编辑
                   </button>
                   <button
                     onClick={() => handleToggleStatus(merchant)}
-                    className={`flex-1 sm:flex-none px-3 py-2 text-sm border rounded ${
+                    className={`flex-1 sm:flex-none px-3 py-2 text-sm border dark:border-neutral-600 rounded ${
                       merchant.isActive
                         ? 'text-yellow-600 hover:bg-yellow-50'
                         : 'text-green-600 hover:bg-green-50'
@@ -326,7 +326,7 @@ export default function MerchantManager() {
                   {merchant.id !== 'default' && (
                     <button
                       onClick={() => handleDelete(merchant)}
-                      className="flex-1 sm:flex-none px-3 py-2 text-sm border border-red-200 text-red-600 rounded hover:bg-red-50"
+                      className="flex-1 sm:flex-none px-3 py-2 text-sm border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 rounded hover:bg-red-50 dark:hover:bg-red-950"
                     >
                       删除
                     </button>
@@ -341,8 +341,8 @@ export default function MerchantManager() {
       {/* 创建/编辑弹窗 */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b">
+          <div className="bg-white dark:bg-neutral-800 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b dark:border-neutral-700">
               <h3 className="text-lg font-semibold">
                 {editingMerchant ? '编辑商户' : '创建商户'}
               </h3>
@@ -352,7 +352,7 @@ export default function MerchantManager() {
               {/* 基本信息 */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-neutral-200 mb-1">
                     商户代码 <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -360,13 +360,13 @@ export default function MerchantManager() {
                     value={formData.code}
                     onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
                     placeholder="例如: shop_a, project_1"
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-neutral-700 dark:text-white"
                     disabled={editingMerchant?.id === 'default'}
                   />
-                  <p className="text-xs text-gray-500 mt-1">用于API调用时识别商户</p>
+                  <p className="text-xs text-gray-500 dark:text-neutral-400 mt-1">用于API调用时识别商户</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-neutral-200 mb-1">
                     商户名称 <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -374,13 +374,13 @@ export default function MerchantManager() {
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="例如: 商铺A"
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-neutral-700 dark:text-white"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-neutral-200 mb-1">
                   描述
                 </label>
                 <input
@@ -388,17 +388,17 @@ export default function MerchantManager() {
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="商户描述信息"
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-neutral-700 dark:text-white"
                 />
               </div>
 
               {/* 回调配置 */}
-              <div className="border-t pt-4">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">回调配置</h4>
+              <div className="border-t dark:border-neutral-700 pt-4">
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-neutral-200 mb-3">回调配置</h4>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-neutral-200 mb-1">
                       回调URL
                     </label>
                     <input
@@ -406,13 +406,13 @@ export default function MerchantManager() {
                       value={formData.callbackUrl}
                       onChange={(e) => setFormData(prev => ({ ...prev, callbackUrl: e.target.value }))}
                       placeholder="https://your-domain.com/callback"
-                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-neutral-700 dark:text-white"
                     />
-                    <p className="text-xs text-gray-500 mt-1">支付成功后回调的URL地址</p>
+                    <p className="text-xs text-gray-500 dark:text-neutral-400 mt-1">支付成功后回调的URL地址</p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-neutral-200 mb-1">
                       API密钥
                     </label>
                     <div className="flex gap-2">
@@ -422,12 +422,12 @@ export default function MerchantManager() {
                           value={formData.apiKey}
                           onChange={(e) => setFormData(prev => ({ ...prev, apiKey: e.target.value }))}
                           placeholder="用于签名验证的密钥"
-                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+                          className="w-full px-3 py-2 border dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-neutral-700 dark:text-white pr-10"
                         />
                         <button
                           type="button"
                           onClick={() => toggleSecretVisibility('apiKey')}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-neutral-400 hover:text-gray-600 dark:hover:text-neutral-300"
                         >
                           {showSecrets['apiKey'] ? '隐藏' : '显示'}
                         </button>
@@ -435,7 +435,7 @@ export default function MerchantManager() {
                       <button
                         type="button"
                         onClick={generateApiKey}
-                        className="px-3 py-2 border rounded-lg hover:bg-gray-50 text-sm whitespace-nowrap"
+                        className="px-3 py-2 border dark:border-neutral-600 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-700 text-sm whitespace-nowrap"
                       >
                         生成密钥
                       </button>
@@ -444,7 +444,7 @@ export default function MerchantManager() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-neutral-200 mb-1">
                         重试次数
                       </label>
                       <input
@@ -453,11 +453,11 @@ export default function MerchantManager() {
                         max="10"
                         value={formData.callbackRetryTimes}
                         onChange={(e) => setFormData(prev => ({ ...prev, callbackRetryTimes: parseInt(e.target.value) || 3 }))}
-                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-neutral-700 dark:text-white"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-neutral-200 mb-1">
                         超时时间 (秒)
                       </label>
                       <input
@@ -466,7 +466,7 @@ export default function MerchantManager() {
                         max="120"
                         value={formData.callbackTimeout}
                         onChange={(e) => setFormData(prev => ({ ...prev, callbackTimeout: parseInt(e.target.value) || 30 }))}
-                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-neutral-700 dark:text-white"
                       />
                     </div>
                   </div>
@@ -474,12 +474,12 @@ export default function MerchantManager() {
               </div>
 
               {/* 安全配置 */}
-              <div className="border-t pt-4">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">安全配置 (可选)</h4>
+              <div className="border-t dark:border-neutral-700 pt-4">
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-neutral-200 mb-3">安全配置 (可选)</h4>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-neutral-200 mb-1">
                       Webhook签名密钥
                     </label>
                     <div className="relative">
@@ -488,12 +488,12 @@ export default function MerchantManager() {
                         value={formData.webhookSecret}
                         onChange={(e) => setFormData(prev => ({ ...prev, webhookSecret: e.target.value }))}
                         placeholder="用于验证Webhook来源"
-                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-16"
+                        className="w-full px-3 py-2 border dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-neutral-700 dark:text-white pr-16"
                       />
                       <button
                         type="button"
                         onClick={() => toggleSecretVisibility('webhookSecret')}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-neutral-400 hover:text-gray-600 dark:hover:text-neutral-300"
                       >
                         {showSecrets['webhookSecret'] ? '隐藏' : '显示'}
                       </button>
@@ -501,7 +501,7 @@ export default function MerchantManager() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-neutral-200 mb-1">
                       IP白名单
                     </label>
                     <input
@@ -509,19 +509,19 @@ export default function MerchantManager() {
                       value={formData.allowedIps}
                       onChange={(e) => setFormData(prev => ({ ...prev, allowedIps: e.target.value }))}
                       placeholder="192.168.1.1,10.0.0.1 (逗号分隔)"
-                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border dark:border-neutral-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-neutral-700 dark:text-white"
                     />
-                    <p className="text-xs text-gray-500 mt-1">允许访问的IP地址，留空则不限制</p>
+                    <p className="text-xs text-gray-500 dark:text-neutral-400 mt-1">允许访问的IP地址，留空则不限制</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* 底部按钮 */}
-            <div className="p-6 border-t flex justify-end gap-3">
+            <div className="p-6 border-t dark:border-neutral-700 flex justify-end gap-3">
               <button
                 onClick={() => setShowModal(false)}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                className="px-4 py-2 border dark:border-neutral-600 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-700"
                 disabled={saving}
               >
                 取消
