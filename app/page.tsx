@@ -24,6 +24,12 @@ interface PaymentRecord {
   timestamp: string;
 }
 
+interface Merchant {
+  id: string;
+  name: string;
+  code?: string;
+}
+
 interface Order {
   orderId: string;
   productName: string;
@@ -37,6 +43,8 @@ interface Order {
   paymentId?: string;
   callbackStatus?: string;
   callbackUrl?: string;
+  merchantId?: string;
+  merchantName?: string;
 }
 
 interface UnmatchedPayment {
@@ -83,6 +91,7 @@ export default function Home() {
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [unmatchedPayments, setUnmatchedPayments] = useState<UnmatchedPayment[]>([]);
+  const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [stats, setStats] = useState<Statistics | null>(null);
   const [loading, setLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(true);
@@ -91,6 +100,13 @@ export default function Home() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshInterval, setRefreshInterval] = useState(10000);
   const [userInfo, setUserInfo] = useState<{ username?: string }>({});
+
+  // 商户名称映射
+  const getMerchantName = useCallback((merchantId?: string) => {
+    if (!merchantId || merchantId === 'default') return '默认商户';
+    const merchant = merchants.find(m => m.id === merchantId);
+    return merchant?.name || merchantId;
+  }, [merchants]);
 
   // 分页数据
   const paginatedPayments = payments.slice(
@@ -133,11 +149,12 @@ export default function Home() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [paymentsRes, statsRes, ordersRes, unmatchedRes] = await Promise.all([
+      const [paymentsRes, statsRes, ordersRes, unmatchedRes, merchantsRes] = await Promise.all([
         fetch('/api/payments'),
         fetch('/api/statistics'),
         fetch('/api/orders'),
-        fetch('/api/unmatched-payments')
+        fetch('/api/unmatched-payments'),
+        fetch('/api/merchants')
       ]);
 
       if (paymentsRes.ok) {
@@ -166,6 +183,11 @@ export default function Home() {
       if (statsRes.ok) {
         const data = await statsRes.json();
         setStats(data);
+      }
+
+      if (merchantsRes.ok) {
+        const data = await merchantsRes.json();
+        setMerchants(data.merchants || []);
       }
 
     } catch (error) {
@@ -560,7 +582,12 @@ ${new Date().toISOString()}`
                            order.status === 'success' ? '已支付' : '失败'}
                         </span>
                       </div>
-                      <div className="text-sm font-medium mb-2 dark:text-neutral-200">{order.productName}</div>
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="text-sm font-medium dark:text-neutral-200">{order.productName}</div>
+                        <span className="px-2 py-1 rounded text-xs bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
+                          {getMerchantName(order.merchantId)}
+                        </span>
+                      </div>
                       <div className="flex justify-between text-sm text-gray-600 dark:text-neutral-400 mb-2">
                         <span>显示: {formatAmount(order.displayAmount || order.amount)}</span>
                         <span className="font-bold dark:text-white">实际: {formatAmount(order.actualAmount || order.amount)}</span>
@@ -618,6 +645,7 @@ ${new Date().toISOString()}`
                     <thead className="bg-gray-50 dark:bg-neutral-900">
                       <tr>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase">订单号</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase">商户</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase">商品</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase">显示金额</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-neutral-400 uppercase">实际金额</th>
@@ -632,6 +660,11 @@ ${new Date().toISOString()}`
                       {paginatedOrders.map(order => (
                         <tr key={order.orderId} className="hover:bg-gray-50 dark:hover:bg-neutral-700/50">
                           <td className="px-4 py-3 text-sm font-mono dark:text-neutral-300">{order.orderId}</td>
+                          <td className="px-4 py-3 text-sm">
+                            <span className="px-2 py-1 rounded text-xs bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
+                              {getMerchantName(order.merchantId)}
+                            </span>
+                          </td>
                           <td className="px-4 py-3 text-sm dark:text-neutral-300">{order.productName}</td>
                           <td className="px-4 py-3 text-sm dark:text-neutral-300">
                             {formatAmount(order.displayAmount || order.amount)}
