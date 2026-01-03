@@ -139,30 +139,43 @@ export async function GET(request: NextRequest) {
 }
 
 // 更新订单状态（内部使用）
+// 使用状态检查防止竞态条件
 export async function updateOrderStatus(
-  orderId: string, 
+  orderId: string,
   status: 'success' | 'failed',
   paymentId?: string
 ): Promise<boolean> {
   try {
     const order = await getOrderById(orderId);
-    
+
     if (!order) {
       console.log('订单不存在:', orderId);
       return false;
     }
-    
+
+    // 防止重复更新：如果订单已经是成功状态，不再更新
+    if (order.status === 'success') {
+      console.log('订单已支付，跳过更新:', orderId);
+      return true; // 返回true表示订单已处理
+    }
+
+    // 防止更新过期订单
+    if (order.status === 'expired') {
+      console.log('订单已过期，无法更新:', orderId);
+      return false;
+    }
+
     const updateFields: Partial<DemoOrder> = {
       status: status as 'success' | 'failed'
     };
     if (status === 'success' && paymentId) {
       updateFields.paymentId = paymentId;
     }
-    
+
     await updateOrder(orderId, updateFields);
     console.log('更新订单状态:', orderId, status);
     return true;
-    
+
   } catch (error) {
     console.error('更新订单状态失败:', error);
     return false;

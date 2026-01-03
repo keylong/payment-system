@@ -1,4 +1,4 @@
-import { pgTable, text, real, timestamp, boolean, integer, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, text, real, timestamp, boolean, integer, jsonb, index } from 'drizzle-orm/pg-core';
 import { createId } from '@paralleldrive/cuid2';
 
 // 支付记录表
@@ -18,7 +18,12 @@ export const payments = pgTable('payments', {
   timestamp: timestamp('timestamp').notNull().defaultNow(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
+}, (table) => [
+  index('payments_callback_status_idx').on(table.callbackStatus),
+  index('payments_merchant_id_idx').on(table.merchantId),
+  index('payments_timestamp_idx').on(table.timestamp),
+  index('payments_status_callback_idx').on(table.status, table.callbackStatus),
+]);
 
 // 演示订单表
 export const demoOrders = pgTable('demo_orders', {
@@ -37,7 +42,12 @@ export const demoOrders = pgTable('demo_orders', {
   expiresAt: timestamp('expires_at').notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
+}, (table) => [
+  index('demo_orders_status_idx').on(table.status),
+  index('demo_orders_merchant_id_idx').on(table.merchantId),
+  index('demo_orders_payment_id_idx').on(table.paymentId),
+  index('demo_orders_expires_at_idx').on(table.expiresAt),
+]);
 
 // 商户配置表
 export const merchants = pgTable('merchants', {
@@ -54,7 +64,9 @@ export const merchants = pgTable('merchants', {
   isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
+}, (table) => [
+  index('merchants_is_active_idx').on(table.isActive),
+]);
 
 // 二维码管理表
 export const qrCodes = pgTable('qr_codes', {
@@ -67,7 +79,9 @@ export const qrCodes = pgTable('qr_codes', {
   sortOrder: integer('sort_order').default(0),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
+}, (table) => [
+  index('qr_codes_type_active_idx').on(table.type, table.isActive),
+]);
 
 // 未匹配支付记录表
 export const unmatchedPayments = pgTable('unmatched_payments', {
@@ -82,7 +96,10 @@ export const unmatchedPayments = pgTable('unmatched_payments', {
   processedOrderId: text('processed_order_id'),
   timestamp: timestamp('timestamp').notNull().defaultNow(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-});
+}, (table) => [
+  index('unmatched_payments_is_processed_idx').on(table.isProcessed),
+  index('unmatched_payments_amount_method_idx').on(table.amount, table.paymentMethod),
+]);
 
 // 待匹配订单表
 export const pendingOrders = pgTable('pending_orders', {
@@ -95,7 +112,11 @@ export const pendingOrders = pgTable('pending_orders', {
   expiresAt: timestamp('expires_at').notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
+}, (table) => [
+  index('pending_orders_status_idx').on(table.status),
+  index('pending_orders_expires_at_idx').on(table.expiresAt),
+  index('pending_orders_amount_method_idx').on(table.amount, table.paymentMethod),
+]);
 
 // 系统配置表
 export const systemConfig = pgTable('system_config', {

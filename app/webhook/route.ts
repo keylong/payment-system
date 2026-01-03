@@ -73,12 +73,21 @@ export async function POST(request: NextRequest) {
 
     // 如果有有效的UID，优先使用UID
     let finalUid = paymentInfo.uid;
-    
+    let merchantId: string | null = null;
+
     // 如果UID是自动生成的或无效的，尝试使用智能匹配
     if (finalUid.startsWith('PAY') || finalUid === '0' || !finalUid) {
       if (matchResult.matched && matchResult.orderId) {
         finalUid = matchResult.orderId;
         console.log(`智能匹配成功: 金额 ¥${paymentInfo.amount} -> 订单 ${finalUid}`);
+
+        // 获取匹配订单的商户ID
+        const { getDemoOrderById } = await import('@/lib/db-operations');
+        const matchedOrder = await getDemoOrderById(matchResult.orderId);
+        if (matchedOrder?.merchantId) {
+          merchantId = matchedOrder.merchantId;
+          console.log(`获取订单商户ID: ${merchantId}`);
+        }
       }
     }
 
@@ -94,7 +103,7 @@ export async function POST(request: NextRequest) {
       matchConfidence: matchResult.confidence ?? null,
       callbackStatus: 'pending' as const,
       callbackUrl: null,
-      merchantId: null,
+      merchantId: merchantId,
       updatedAt: new Date()
     });
 

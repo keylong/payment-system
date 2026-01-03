@@ -2,7 +2,8 @@ import { PaymentRecord, updatePaymentRecord, getDemoOrderByPaymentId } from './d
 import { createMerchantRequest } from './merchant-crypto';
 import { formatShanghaiTime } from './timezone';
 import { getConfig } from './system-config';
-import { getMerchantById, ensureDefaultMerchant } from './db-operations';
+import { getMerchantById } from './db-operations';
+import { validateCallbackUrl, fetchWithTimeout } from './url-validator';
 
 export interface CallbackPayload {
   orderId: string;
@@ -65,25 +66,25 @@ export async function notifyMerchant(record: PaymentRecord): Promise<boolean> {
     // 获取关联订单以确定商户
     const linkedOrder = await getDemoOrderByPaymentId(record.id);
 
-    console.log('[回调调试] 支付记录ID:', record.id);
-    console.log('[回调调试] 关联订单:', linkedOrder ? {
-      orderId: linkedOrder.orderId,
-      merchantId: linkedOrder.merchantId,
-      paymentId: linkedOrder.paymentId
-    } : 'null');
-
     const merchantId = (record as PaymentRecord & { merchantId?: string }).merchantId
       || (linkedOrder as { merchantId?: string } | null)?.merchantId
       || 'default';
 
-    console.log('[回调调试] 最终商户ID:', merchantId);
-
     // 获取商户回调配置
-    const { callbackUrl, apiKey } = await getMerchantCallbackConfig(merchantId);
-    console.log('[回调调试] 商户回调URL:', callbackUrl);
+    const { callbackUrl, apiKey, timeout } = await getMerchantCallbackConfig(merchantId);
 
     if (!callbackUrl) {
       console.log('商户回调URL未配置, merchantId:', merchantId);
+      await updatePaymentRecord(record.id, {
+        callbackStatus: 'failed'
+      });
+      return false;
+    }
+
+    // 验证回调 URL 安全性
+    const urlValidation = validateCallbackUrl(callbackUrl);
+    if (!urlValidation.valid) {
+      console.error('回调URL验证失败:', urlValidation.error);
       await updatePaymentRecord(record.id, {
         callbackStatus: 'failed'
       });
@@ -109,9 +110,6 @@ export async function notifyMerchant(record: PaymentRecord): Promise<boolean> {
       payload.customerType = record.customerType;
     }
 
-    console.log('发送回调通知到:', callbackUrl, 'merchantId:', merchantId);
-    console.log('回调数据:', payload);
-
     // 使用标准商户端加密
     const { body, headers } = createMerchantRequest(payload, apiKey || '');
 
@@ -119,18 +117,18 @@ export async function notifyMerchant(record: PaymentRecord): Promise<boolean> {
     headers['X-Payment-System'] = 'AlipayWechatGateway/1.0';
     headers['X-Merchant-Id'] = merchantId;
 
-    const response = await fetch(callbackUrl, {
+    // 使用带超时的 fetch
+    const response = await fetchWithTimeout(callbackUrl, {
       method: 'POST',
       headers,
       body
-    });
+    }, timeout * 1000);
 
     if (response.ok) {
       await updatePaymentRecord(record.id, {
         callbackStatus: 'sent',
         callbackUrl: callbackUrl
       });
-      console.log('回调通知发送成功');
       return true;
     } else {
       console.error('回调通知失败:', response.status, response.statusText);
@@ -141,7 +139,11 @@ export async function notifyMerchant(record: PaymentRecord): Promise<boolean> {
     }
 
   } catch (error) {
-    console.error('发送回调通知时出错:', error);
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('回调请求超时');
+    } else {
+      console.error('发送回调通知时出错:', error);
+    }
     await updatePaymentRecord(record.id, {
       callbackStatus: 'failed'
     });
@@ -153,20 +155,19 @@ export async function notifyMerchant(record: PaymentRecord): Promise<boolean> {
 export async function sendCallbackNotification(callbackData: CallbackPayload, merchantId?: string): Promise<{success: boolean, error?: string}> {
   try {
     const resolvedMerchantId = merchantId || callbackData.merchantId;
-    console.log('[sendCallback] 请求的商户ID:', resolvedMerchantId);
 
     // 获取商户回调配置
-    const { callbackUrl, apiKey } = await getMerchantCallbackConfig(resolvedMerchantId);
-    console.log('[sendCallback] 获取到的回调URL:', callbackUrl, '商户ID:', resolvedMerchantId);
+    const { callbackUrl, apiKey, timeout } = await getMerchantCallbackConfig(resolvedMerchantId);
 
     if (!callbackUrl) {
-      const errorMsg = '商户回调URL未配置';
-      console.log(errorMsg);
-      return { success: false, error: errorMsg };
+      return { success: false, error: '商户回调URL未配置' };
     }
 
-    console.log('发送回调通知到:', callbackUrl);
-    console.log('回调数据:', callbackData);
+    // 验证回调 URL 安全性
+    const urlValidation = validateCallbackUrl(callbackUrl);
+    if (!urlValidation.valid) {
+      return { success: false, error: `回调URL验证失败: ${urlValidation.error}` };
+    }
 
     // 使用标准商户端加密
     const { body, headers } = createMerchantRequest(callbackData, apiKey || '');
@@ -177,25 +178,32 @@ export async function sendCallbackNotification(callbackData: CallbackPayload, me
       headers['X-Merchant-Id'] = merchantId || callbackData.merchantId || '';
     }
 
-    const response = await fetch(callbackUrl, {
+    // 使用带超时的 fetch
+    const response = await fetchWithTimeout(callbackUrl, {
       method: 'POST',
       headers,
       body
-    });
+    }, timeout * 1000);
 
     if (response.ok) {
-      console.log('回调通知发送成功');
       return { success: true };
     } else {
-      const errorMsg = `回调通知失败: ${response.status} ${response.statusText}`;
-      console.error(errorMsg);
-      return { success: false, error: errorMsg };
+      // 尝试获取响应体以便了解错误原因
+      let responseBody = '';
+      try {
+        responseBody = await response.text();
+        console.error('[回调失败] 响应体:', responseBody);
+      } catch {
+        // 忽略读取错误
+      }
+      return { success: false, error: `回调通知失败: ${response.status} ${response.statusText}` };
     }
 
   } catch (error) {
-    const errorMsg = `发送回调通知时出错: ${error}`;
-    console.error(errorMsg);
-    return { success: false, error: errorMsg };
+    if (error instanceof Error && error.name === 'AbortError') {
+      return { success: false, error: '回调请求超时' };
+    }
+    return { success: false, error: `发送回调通知时出错: ${error}` };
   }
 }
 
@@ -215,10 +223,16 @@ export async function retrySinglePaymentCallback(paymentId: string): Promise<{su
       || 'default';
 
     // 获取商户回调配置
-    const { callbackUrl, apiKey } = await getMerchantCallbackConfig(merchantId);
+    const { callbackUrl, apiKey, timeout } = await getMerchantCallbackConfig(merchantId);
 
     if (!callbackUrl) {
       return { success: false, error: '商户回调URL未配置' };
+    }
+
+    // 验证回调 URL 安全性
+    const urlValidation = validateCallbackUrl(callbackUrl);
+    if (!urlValidation.valid) {
+      return { success: false, error: `回调URL验证失败: ${urlValidation.error}` };
     }
 
     // 如果该支付记录曾匹配到订单，使用匹配到的订单号
@@ -240,9 +254,6 @@ export async function retrySinglePaymentCallback(paymentId: string): Promise<{su
       payload.customerType = record.customerType;
     }
 
-    console.log('发送回调通知到:', callbackUrl, 'merchantId:', merchantId);
-    console.log('回调数据:', payload);
-
     // 使用标准商户端加密
     const { body, headers } = createMerchantRequest(payload, apiKey || '');
 
@@ -250,32 +261,31 @@ export async function retrySinglePaymentCallback(paymentId: string): Promise<{su
     headers['X-Payment-System'] = 'AlipayWechatGateway/1.0';
     headers['X-Merchant-Id'] = merchantId;
 
-    const response = await fetch(callbackUrl, {
+    // 使用带超时的 fetch
+    const response = await fetchWithTimeout(callbackUrl, {
       method: 'POST',
       headers,
       body
-    });
+    }, timeout * 1000);
 
     if (response.ok) {
       await updatePaymentRecord(record.id, {
         callbackStatus: 'sent',
         callbackUrl: callbackUrl
       });
-      console.log('回调通知发送成功');
       return { success: true };
     } else {
-      const errorMsg = `回调通知失败: ${response.status} ${response.statusText}`;
-      console.error(errorMsg);
       await updatePaymentRecord(record.id, {
         callbackStatus: 'failed'
       });
-      return { success: false, error: errorMsg };
+      return { success: false, error: `回调通知失败: ${response.status} ${response.statusText}` };
     }
 
   } catch (error) {
-    const errorMsg = `发送回调通知时出错: ${error}`;
-    console.error(errorMsg);
-    return { success: false, error: errorMsg };
+    if (error instanceof Error && error.name === 'AbortError') {
+      return { success: false, error: '回调请求超时' };
+    }
+    return { success: false, error: `发送回调通知时出错: ${error}` };
   }
 }
 
@@ -288,17 +298,31 @@ export async function retryFailedCallbacks(): Promise<number> {
     (r.callbackStatus === 'failed' || r.callbackStatus === 'pending')
   );
 
-  let successCount = 0;
-
-  for (const record of failedRecords) {
-    const success = await notifyMerchant(record);
-    if (success) {
-      successCount++;
-    }
-
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  if (failedRecords.length === 0) {
+    return 0;
   }
 
-  console.log(`重试完成: ${successCount}/${failedRecords.length} 个回调成功`);
+  // 使用并发控制，每次最多处理5个
+  const CONCURRENCY_LIMIT = 5;
+  let successCount = 0;
+
+  for (let i = 0; i < failedRecords.length; i += CONCURRENCY_LIMIT) {
+    const batch = failedRecords.slice(i, i + CONCURRENCY_LIMIT);
+    const results = await Promise.allSettled(
+      batch.map(record => notifyMerchant(record))
+    );
+
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value) {
+        successCount++;
+      }
+    }
+
+    // 批次之间添加短暂延迟，避免过载
+    if (i + CONCURRENCY_LIMIT < failedRecords.length) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+
   return successCount;
 }

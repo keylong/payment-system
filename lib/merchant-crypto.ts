@@ -50,9 +50,7 @@ export function generateMerchantSignature(
     .filter(key => allParams[key as keyof typeof allParams] !== undefined && allParams[key as keyof typeof allParams] !== null)
     .map(key => `${key}=${allParams[key as keyof typeof allParams]}`)
     .join('&');
-  
-  console.log('[商户签名] 签名字符串:', signString);
-  
+
   // 生成HMAC-SHA256签名
   const signature = crypto
     .createHmac('sha256', config.apiKey)
@@ -73,38 +71,35 @@ export function verifyMerchantSignature(
 ): boolean {
   try {
     const { timestamp, nonce, ...otherParams } = params;
-    
+
     // 类型检查和转换
     if (typeof timestamp !== 'number' || typeof nonce !== 'string') {
-      console.log('[商户验证] 时间戳或nonce类型不正确');
       return false;
     }
-    
+
     // 验证时间戳
     const currentTime = Math.floor(Date.now() / 1000);
     if (Math.abs(currentTime - timestamp) > maxAge) {
-      console.log('[商户验证] 时间戳过期');
       return false;
     }
-    
+
     // 重新生成签名进行比较
     const expectedSignature = generateMerchantSignature(otherParams, {
       apiKey,
       timestamp,
       nonce
     });
-    
+
     // 使用constant-time比较防止时序攻击
     const isValid = crypto.timingSafeEqual(
       Buffer.from(signature, 'hex'),
       Buffer.from(expectedSignature, 'hex')
     );
-    
-    console.log('[商户验证] 签名验证结果:', isValid);
+
     return isValid;
-    
+
   } catch (error) {
-    console.error('[商户验证] 签名验证异常:', error);
+    console.error('签名验证异常:', error);
     return false;
   }
 }
@@ -166,16 +161,15 @@ export function validateMerchantCallback(
   try {
     const data = JSON.parse(body);
     const { signature, ...params } = data;
-    
+
     if (!signature) {
-      console.log('[回调验证] 缺少签名');
       return false;
     }
-    
+
     return verifyMerchantSignature(params, signature, apiKey);
-    
+
   } catch (error) {
-    console.error('[回调验证] 解析数据失败:', error);
+    console.error('回调验证失败:', error);
     return false;
   }
 }
