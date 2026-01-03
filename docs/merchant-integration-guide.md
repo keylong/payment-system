@@ -3,6 +3,7 @@
 ## 📋 目录
 - [快速开始](#快速开始)
 - [系统架构](#系统架构)
+- [多商户系统](#多商户系统)
 - [接入准备](#接入准备)
 - [API接口文档](#API接口文档)
 - [回调通知](#回调通知)
@@ -22,6 +23,7 @@
 - **🎯 智能订单匹配**: 通过金额+时间窗口智能匹配订单，避免重复金额冲突
 - **⚡ 实时回调通知**: 支付成功后立即回调商户系统，支持重试机制
 - **🔐 安全签名验证**: HMAC-SHA256签名算法，确保数据传输安全
+- **🏢 多商户支持**: 支持多商户独立配置，每个商户拥有独立的回调URL和密钥
 - **📱 多端适配**: 支持PC端和移动端管理界面
 - **📊 完整数据统计**: 支付统计、订单管理、导出功能
 - **🕒 上海时区**: 全系统使用上海时间，符合国内使用习惯
@@ -65,6 +67,96 @@
 3. **防冲突**: 重复金额自动调整（加减分处理）
 4. **置信度**: 根据匹配条件计算匹配置信度
 5. **手动确认**: 低置信度订单支持后台手动确认
+
+---
+
+## 🏢 多商户系统
+
+### 概述
+系统支持多商户模式，每个商户可以配置独立的回调URL、API密钥和其他参数。适用于以下场景：
+
+- **多网站/多应用**: 一套支付系统服务多个网站或应用
+- **代理模式**: 为多个下游商户提供支付服务
+- **项目隔离**: 不同项目使用不同的回调配置
+
+### 商户数据模型
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| id | string | 是 | 商户唯一标识（系统自动生成） |
+| code | string | 是 | 商户代码，用于API调用识别（如：`shop_a`） |
+| name | string | 是 | 商户名称（如：`商铺A`） |
+| callbackUrl | string | 否 | 商户回调URL地址 |
+| apiKey | string | 否 | 商户API密钥，用于签名验证 |
+| description | string | 否 | 商户描述信息 |
+| webhookSecret | string | 否 | Webhook签名密钥 |
+| allowedIps | string | 否 | IP白名单，逗号分隔 |
+| callbackRetryTimes | number | 否 | 回调重试次数（默认3次） |
+| callbackTimeout | number | 否 | 回调超时时间（默认30秒） |
+| isActive | boolean | 否 | 是否启用（默认true） |
+| createdAt | string | 是 | 创建时间 |
+| updatedAt | string | 是 | 更新时间 |
+
+### 创建商户
+
+在管理后台的「商户管理」标签页中创建��户：
+
+1. 点击「添加商户」按钮
+2. 填写必填信息：
+   - **商户代码**: 唯一标识，如 `shop_a`、`project_1`
+   - **商户名称**: 显示名称，如 `商铺A`
+3. 配置回调参数：
+   - **回调URL**: 支付成功后通知的地址
+   - **API密钥**: 用于签名验证（可点击「生成密钥」自动生成）
+4. 可选配置：
+   - **重试次���**: 回调失败后的重试次数
+   - **超时时间**: 单次回调的超时时间
+   - **IP白名单**: 允许访问的IP地址
+5. 点击「保存」完成创建
+
+### 商户路由机制
+
+系统通过以下方式确定回调的目标商户：
+
+```
+1. 首先检查订单的 merchantId 字段
+2. 如果订单无 merchantId，使用 default 商户配置
+3. 获取对应商户的 callbackUrl 和 apiKey
+4. 发送签名的回调请求到商户
+```
+
+### 创建订单时指定商户
+
+创建订单时可以通过两种方式指定商户：
+
+**方式1: 使用商户ID**
+```json
+{
+  "productName": "商品名称",
+  "amount": 10.00,
+  "paymentMethod": "alipay",
+  "merchantId": "cm1234567890"
+}
+```
+
+**方式2: 使用商户代码**
+```json
+{
+  "productName": "商品名称",
+  "amount": 10.00,
+  "paymentMethod": "alipay",
+  "merchantCode": "shop_a"
+}
+```
+
+**不指定商户**（使用默认商户）:
+```json
+{
+  "productName": "商品名称",
+  "amount": 10.00,
+  "paymentMethod": "alipay"
+}
+```
 
 ---
 
@@ -114,7 +206,9 @@
 {
   "productName": "商品名称",
   "amount": 0.01,
-  "paymentMethod": "alipay"
+  "paymentMethod": "alipay",
+  "merchantId": "cm1234567890",
+  "merchantCode": "shop_a"
 }
 ```
 
@@ -124,6 +218,10 @@
 | productName | string | 是 | 商品名称，最大50字符 |
 | amount | number | 是 | 订单金额，最小0.01，最大10000 |
 | paymentMethod | string | 是 | 支付方式：`alipay`/`wechat` |
+| merchantId | string | 否 | 商户ID，与merchantCode二选一 |
+| merchantCode | string | 否 | 商户代码，与merchantId二选一 |
+
+> **注意**: `merchantId` 和 `merchantCode` 都不传时，订单将关联到默认商户。
 
 **响应格式**:
 ```json
@@ -133,6 +231,7 @@
   "amount": 0.01,
   "displayAmount": 0.01,
   "paymentMethod": "alipay",
+  "merchantId": "cm1234567890",
   "message": "订单创建成功！",
   "expiresAt": "2025-01-13 19:40:38"
 }
@@ -146,6 +245,7 @@
 | amount | number | 实际支付金额（可能因防重复调整） |
 | displayAmount | number | 原始订单金额 |
 | paymentMethod | string | 支付方式 |
+| merchantId | string | 关联的商户ID |
 | message | string | 结果说明 |
 | expiresAt | string | 订单过期时间（上海时间） |
 
@@ -240,8 +340,18 @@ GET /api/order-status?orderId=ORD1757825452250764
 - **协议**: HTTP POST请求
 - **格式**: JSON数据
 - **重试**: 失败后自动重试，间隔递增
-- **超时**: 单次请求5秒超时
+- **超时**: 单次请求5秒超时（可在商户配置中自定义）
 - **状态**: 记录回调状态（pending/sent/failed）
+
+### 请求头信息
+
+| 请求头 | 说明 |
+|--------|------|
+| Content-Type | `application/json` |
+| User-Agent | `MerchantSDK/1.0` |
+| X-Request-Id | 请求唯一标识（32位随机字符串） |
+| X-Payment-System | `AlipayWechatGateway/1.0` |
+| X-Merchant-Id | 商户ID |
 
 ### 回调数据格式
 ```json
@@ -252,27 +362,33 @@ GET /api/order-status?orderId=ORD1757825452250764
   "paymentMethod": "alipay",
   "status": "success",
   "timestamp": "2025-01-13 19:26:15",
+  "merchantId": "cm1234567890",
   "customerType": "新客户",
   "nonce": "f8e3d2c1b0a9",
   "signature": "8d7e9f2a1b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e"
 }
 ```
 
-### 回调字段说明
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| orderId | string | 订单号 |
-| amount | number | 支付金额 |
-| uid | string | 用户标识/订单标识 |
-| paymentMethod | string | 支付方式 |
-| status | string | 支付状态（通常为success） |
-| timestamp | string | 支付时间（上海时间） |
-| customerType | string | 客户类型（新客户/老顾客/null） |
-| nonce | string | 随机数，防重放 |
-| signature | string | HMAC-SHA256签名 |
+### 回调字段详细说明
+
+| 字段 | 类型 | 必有 | 说明 |
+|------|------|------|------|
+| orderId | string | ✅ | 订单号，与创建订单时返回的orderId一致 |
+| amount | number | ✅ | 实际支付金额（单位：元） |
+| uid | string | ✅ | 用户标识/订单标识 |
+| paymentMethod | string | ✅ | 支付方式：`alipay` 或 `wechat` |
+| status | string | ✅ | 支付状态，回调时通常为 `success` |
+| timestamp | string | ✅ | 支付时间，格式：`YYYY-MM-DD HH:mm:ss`（上海时间） |
+| **merchantId** | string | ✅ | **商户ID，用于多商户场景下识别订单归属** |
+| customerType | string | ❌ | 客户类型：`新客户`/`老顾客`/null |
+| nonce | string | ✅ | 16位随机字符串，防止重放攻击 |
+| signature | string | ✅ | HMAC-SHA256签名，用于验证数据完整性 |
 
 ### 商户响应要求
-**成功响应**:
+
+商户服务器收到回调后，应返回JSON格式响应：
+
+**成功响应**（HTTP 200）:
 ```json
 {
   "success": true,
@@ -280,12 +396,41 @@ GET /api/order-status?orderId=ORD1757825452250764
 }
 ```
 
-**失败响应** (会触发重试):
+**失败响应**（会触发重试）:
 ```json
 {
   "success": false,
   "error": "处理失败原因"
 }
+```
+
+### 回调处理流程
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        回调处理流程                              │
+├─────────────────────────────────────────────────────────────────┤
+│  1. 接收回调请求                                                 │
+│     ↓                                                           │
+│  2. 验证签名 (signature)                                        │
+│     ├── 失败 → 返回 401，记录日志                                │
+│     └── 成功 ↓                                                  │
+│  3. 验证时间戳 (timestamp)                                      │
+│     ├── 过期(>5分钟) → 返回 401                                 │
+│     └── 有效 ↓                                                  │
+│  4. 检查订单是否已处理 (幂等性)                                  │
+│     ├── 已处理 → 直接返回成功                                   │
+│     └── 未处理 ↓                                                │
+│  5. 验证商户ID (merchantId)                                     │
+│     ├── 不匹配 → 记录告警，返回错误                              │
+│     └── 匹配 ↓                                                  │
+│  6. 处理业务逻辑                                                │
+│     - 更新订单状态                                              │
+│     - 发送通知                                                  │
+│     - 记录日志                                                  │
+│     ↓                                                           │
+│  7. 返回成功响应                                                │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -311,20 +456,28 @@ GET /api/order-status?orderId=ORD1757825452250764
   "orderId": "ORD1757825452250764",
   "amount": 0.01,
   "status": "success",
-  "timestamp": "2025-01-13 19:26:15",
+  "merchantId": "cm1234567890",
+  "timestamp": 1736851575,
   "nonce": "f8e3d2c1b0a9"
 }
 ```
 
-**构建签名字符串**:
+**构建签名字符串**（按key字典序排序，添加api_key）:
 ```
-amount=0.01&api_key=your_secret_key&nonce=f8e3d2c1b0a9&orderId=ORD1757825452250764&status=success&timestamp=2025-01-13 19:26:15
+amount=0.01&api_key=your_secret_key&merchantId=cm1234567890&nonce=f8e3d2c1b0a9&orderId=ORD1757825452250764&status=success&timestamp=1736851575
 ```
 
 **计算签名**:
 ```
 signature = HMAC-SHA256(签名字符串, API密钥)
 ```
+
+**注意事项**:
+- 所有参数按key字典序升序排列
+- 添加 `api_key` 参数参与签名
+- 过滤掉值为 `undefined` 或 `null` 的参数
+- 使用商户配置的 `apiKey` 作为HMAC密钥
+- 最终签名为小写十六进制字符串
 
 ### 时间戳验证
 - **有效期**: 5分钟（300秒）
@@ -422,72 +575,82 @@ app.get('/order-status/:orderId', async (req, res) => {
 app.post('/payment-callback', (req, res) => {
   try {
     console.log('收到支付回调:', req.body);
-    
+    console.log('商户ID:', req.headers['x-merchant-id']);
+
     const { signature, ...params } = req.body;
-    
+
     // 1. 验证签名
     if (!verifySignature(req.body, signature, API_KEY)) {
       console.error('签名验证失败');
-      return res.status(401).json({ 
-        success: false, 
-        error: '签名验证失败' 
+      return res.status(401).json({
+        success: false,
+        error: '签名验证失败'
       });
     }
-    
-    // 2. 验证时间戳（可选，如果有timestamp字段）
+
+    // 2. 验证时间戳（timestamp为Unix时间戳）
     if (params.timestamp) {
-      const now = new Date();
-      const callbackTime = new Date(params.timestamp);
-      const timeDiff = Math.abs(now - callbackTime) / 1000;
-      
+      const currentTime = Math.floor(Date.now() / 1000);
+      const timeDiff = Math.abs(currentTime - params.timestamp);
+
       if (timeDiff > 300) { // 5分钟
         console.error('回调时间戳过期');
-        return res.status(401).json({ 
-          success: false, 
-          error: '回调已过期' 
+        return res.status(401).json({
+          success: false,
+          error: '回调已过期'
         });
       }
     }
-    
-    // 3. 检查订单是否已处理（幂等性）
-    if (isOrderAlreadyProcessed(params.orderId)) {
-      console.log(`订单 ${params.orderId} 已处理过，直接返回成功`);
-      return res.json({ 
-        success: true, 
-        message: '订单已处理' 
+
+    // 3. 验证商户ID（多商户场景）
+    const expectedMerchantId = 'your_merchant_id'; // 您的商户ID
+    if (params.merchantId && params.merchantId !== expectedMerchantId) {
+      console.error('商户ID不匹配:', params.merchantId);
+      return res.status(403).json({
+        success: false,
+        error: '商户ID不匹配'
       });
     }
-    
-    // 4. 处理业务逻辑
+
+    // 4. 检查订单是否已处理（幂等性）
+    if (isOrderAlreadyProcessed(params.orderId)) {
+      console.log(`订单 ${params.orderId} 已处理过，直接返回成功`);
+      return res.json({
+        success: true,
+        message: '订单已处理'
+      });
+    }
+
+    // 5. 处理业务逻辑
     if (params.status === 'success') {
       // 支付成功处理
-      console.log(`订单支付成功: ${params.orderId}, 金额: ${params.amount}`);
-      
+      console.log(`订单支付成功: ${params.orderId}, 金额: ${params.amount}, 商户: ${params.merchantId}`);
+
       // 更新订单状态
       updateOrderStatus(params.orderId, 'paid', params.amount);
-      
+
       // 发送确认邮件
       sendConfirmationEmail(params.orderId, params.amount);
-      
+
       // 触发发货流程
       triggerShipment(params.orderId);
-      
+
       // 记录支付日志
       logPaymentSuccess(params);
     }
-    
-    // 5. 返回成功响应
+
+    // 6. 返回成功响应
     res.json({
       success: true,
       message: '回调处理成功',
       orderId: params.orderId
     });
-    
+
   } catch (error) {
     console.error('回调处理异常:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: '内部处理错误' 
+    res.status(500).json({
+      success: false,
+      error: '内部处理错误'
     });
   }
 });
@@ -539,16 +702,18 @@ app.listen(PORT, () => {
 <?php
 class PaymentHandler {
     private $apiKey;
-    
-    public function __construct($apiKey) {
+    private $merchantId;
+
+    public function __construct($apiKey, $merchantId = null) {
         $this->apiKey = $apiKey;
+        $this->merchantId = $merchantId;
     }
-    
+
     // 生成签名
     public function generateSignature($params) {
         $params['api_key'] = $this->apiKey;
         ksort($params);
-        
+
         $signString = '';
         foreach ($params as $key => $value) {
             if ($value !== null && $value !== '') {
@@ -556,55 +721,65 @@ class PaymentHandler {
             }
         }
         $signString = rtrim($signString, '&');
-        
+
         return hash_hmac('sha256', $signString, $this->apiKey);
     }
-    
+
     // 验证签名
     public function verifySignature($params, $signature) {
         $receivedParams = $params;
         unset($receivedParams['signature']);
-        
+
         $expectedSignature = $this->generateSignature($receivedParams);
-        
+
         return hash_equals($signature, $expectedSignature);
     }
-    
+
     // 处理支付回调
     public function handleCallback() {
         $input = file_get_contents('php://input');
         $data = json_decode($input, true);
-        
+
         if (!$data) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => '数据格式错误']);
             return;
         }
-        
+
         // 验证签名
         if (!$this->verifySignature($data, $data['signature'])) {
             http_response_code(401);
             echo json_encode(['success' => false, 'error' => '签名验证失败']);
             return;
         }
-        
-        // 验证时间戳
+
+        // 验证时间戳（Unix时间戳）
         if (isset($data['timestamp'])) {
-            $callbackTime = strtotime($data['timestamp']);
             $currentTime = time();
-            
+            $callbackTime = intval($data['timestamp']);
+
             if (abs($currentTime - $callbackTime) > 300) {
                 http_response_code(401);
                 echo json_encode(['success' => false, 'error' => '回调已过期']);
                 return;
             }
         }
-        
+
+        // 验证商户ID
+        if ($this->merchantId && isset($data['merchantId'])) {
+            if ($data['merchantId'] !== $this->merchantId) {
+                http_response_code(403);
+                error_log("商户ID不匹配: 期望 {$this->merchantId}, 收到 {$data['merchantId']}");
+                echo json_encode(['success' => false, 'error' => '商户ID不匹配']);
+                return;
+            }
+        }
+
         // 处理业务逻辑
         if ($data['status'] === 'success') {
             $this->processPaymentSuccess($data);
         }
-        
+
         // 返回成功响应
         echo json_encode([
             'success' => true,
@@ -612,11 +787,11 @@ class PaymentHandler {
             'orderId' => $data['orderId']
         ]);
     }
-    
+
     private function processPaymentSuccess($data) {
         // 支付成功处理逻辑
-        error_log("订单支付成功: " . $data['orderId'] . ", 金额: " . $data['amount']);
-        
+        error_log("订单支付成功: {$data['orderId']}, 金额: {$data['amount']}, 商户: {$data['merchantId']}");
+
         // 更新数据库
         // 发送邮件
         // 其他业务逻辑
@@ -624,7 +799,7 @@ class PaymentHandler {
 }
 
 // 使用示例
-$handler = new PaymentHandler('your-secret-api-key');
+$handler = new PaymentHandler('your-secret-api-key', 'your-merchant-id');
 $handler->handleCallback();
 ?>
 ```
@@ -639,25 +814,26 @@ from datetime import datetime
 
 app = Flask(__name__)
 API_KEY = 'your-secret-api-key'
+MERCHANT_ID = 'your-merchant-id'  # 您的商户ID
 
 def generate_signature(params, api_key):
     """生成签名"""
     params_copy = params.copy()
     params_copy['api_key'] = api_key
-    
+
     # 按key排序
     sorted_params = sorted(params_copy.items())
-    
+
     # 构建签名字符串
     sign_string = '&'.join([f"{k}={v}" for k, v in sorted_params if v is not None])
-    
+
     # 生成HMAC-SHA256签名
     signature = hmac.new(
         api_key.encode('utf-8'),
         sign_string.encode('utf-8'),
         hashlib.sha256
     ).hexdigest()
-    
+
     return signature
 
 def verify_signature(params, received_signature, api_key):
@@ -665,53 +841,60 @@ def verify_signature(params, received_signature, api_key):
     params_copy = params.copy()
     if 'signature' in params_copy:
         del params_copy['signature']
-    
+
     expected_signature = generate_signature(params_copy, api_key)
-    
+
     return hmac.compare_digest(received_signature, expected_signature)
 
 @app.route('/payment-callback', methods=['POST'])
 def payment_callback():
     try:
         data = request.get_json()
-        
+
         if not data:
             return jsonify({'success': False, 'error': '数据格式错误'}), 400
-        
+
         print(f"收到支付回调: {data}")
-        
+        print(f"商户ID (Header): {request.headers.get('X-Merchant-Id')}")
+
         # 验证签名
         signature = data.get('signature')
         if not signature or not verify_signature(data, signature, API_KEY):
             return jsonify({'success': False, 'error': '签名验证失败'}), 401
-        
-        # 验证时间戳
+
+        # 验证时间戳（Unix时间戳）
         if 'timestamp' in data:
-            callback_time = datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00'))
-            current_time = datetime.now()
-            time_diff = abs((current_time - callback_time).total_seconds())
-            
+            current_time = int(time.time())
+            callback_time = int(data['timestamp'])
+            time_diff = abs(current_time - callback_time)
+
             if time_diff > 300:  # 5分钟
                 return jsonify({'success': False, 'error': '回调已过期'}), 401
-        
+
+        # 验证商户ID
+        if MERCHANT_ID and 'merchantId' in data:
+            if data['merchantId'] != MERCHANT_ID:
+                print(f"商户ID不匹配: 期望 {MERCHANT_ID}, 收到 {data['merchantId']}")
+                return jsonify({'success': False, 'error': '商户ID不匹配'}), 403
+
         # 处理业务逻辑
         if data.get('status') == 'success':
             process_payment_success(data)
-        
+
         return jsonify({
             'success': True,
             'message': '处理成功',
             'orderId': data.get('orderId')
         })
-        
+
     except Exception as e:
         print(f"回调处理异常: {e}")
         return jsonify({'success': False, 'error': '内部处理错误'}), 500
 
 def process_payment_success(data):
     """处理支付成功"""
-    print(f"订单支付成功: {data['orderId']}, 金额: {data['amount']}")
-    
+    print(f"订单支付成功: {data['orderId']}, 金额: {data['amount']}, 商户: {data.get('merchantId')}")
+
     # 更新订单状态
     # 发送确认邮件
     # 触发发货流程
@@ -722,6 +905,7 @@ def health_check():
     return jsonify({
         'status': 'ok',
         'service': 'merchant-server',
+        'merchantId': MERCHANT_ID,
         'timestamp': datetime.now().isoformat()
     })
 
@@ -1271,6 +1455,14 @@ telnet your-domain.com 443
 
 ## 📋 版本更新记录
 
+### v2.1.0 (2026-01-02)
+- 🏢 **新增**: 完整的多商户系统文档
+- 📄 **新增**: 商户数据模型详细说明
+- 🔄 **更新**: 回调数据格式增加 merchantId 字段
+- 📝 **更新**: 所有示例代码支持多商户验证
+- 🔐 **增强**: 回调处理流程图
+- 📋 **完善**: 请求头信息说明
+
 ### v2.0.0 (2025-01-13)
 - 🚀 **重大更新**: 完全重写商户接入文档
 - ✨ **新增**: 智能订单匹配系统详细说明
@@ -1305,5 +1497,5 @@ telnet your-domain.com 443
 
 ---
 
-*文档最后更新时间: 2025年1月13日*
+*文档最后更新时间: 2026年1月2日*
 *技术支持: 智能支付网关技术团队*
