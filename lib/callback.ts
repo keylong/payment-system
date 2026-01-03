@@ -152,8 +152,12 @@ export async function notifyMerchant(record: PaymentRecord): Promise<boolean> {
 
 export async function sendCallbackNotification(callbackData: CallbackPayload, merchantId?: string): Promise<{success: boolean, error?: string}> {
   try {
+    const resolvedMerchantId = merchantId || callbackData.merchantId;
+    console.log('[sendCallback] 请求的商户ID:', resolvedMerchantId);
+
     // 获取商户回调配置
-    const { callbackUrl, apiKey } = await getMerchantCallbackConfig(merchantId || callbackData.merchantId);
+    const { callbackUrl, apiKey } = await getMerchantCallbackConfig(resolvedMerchantId);
+    console.log('[sendCallback] 获取到的回调URL:', callbackUrl, '商户ID:', resolvedMerchantId);
 
     if (!callbackUrl) {
       const errorMsg = '商户回调URL未配置';

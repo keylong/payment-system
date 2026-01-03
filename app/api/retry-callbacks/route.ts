@@ -17,6 +17,9 @@ export async function POST(request: Request) {
           );
         }
 
+        // 获取订单的商户ID
+        const orderMerchantId = order.merchantId || 'default';
+
         // 创建虚拟支付数据进行回调
         const callbackData = {
           orderId: order.orderId,
@@ -24,10 +27,11 @@ export async function POST(request: Request) {
           uid: order.orderId, // 使用订单ID作为UID
           paymentMethod: order.paymentMethod || 'unknown',
           status: 'success',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          merchantId: orderMerchantId // 包含商户ID
         };
 
-        const callbackResult = await sendCallbackNotification(callbackData);
+        const callbackResult = await sendCallbackNotification(callbackData, orderMerchantId);
         
         if (callbackResult.success) {
           return NextResponse.json({
