@@ -64,12 +64,23 @@ export async function notifyMerchant(record: PaymentRecord): Promise<boolean> {
   try {
     // 获取关联订单以确定商户
     const linkedOrder = await getDemoOrderByPaymentId(record.id);
+
+    console.log('[回调调试] 支付记录ID:', record.id);
+    console.log('[回调调试] 关联订单:', linkedOrder ? {
+      orderId: linkedOrder.orderId,
+      merchantId: linkedOrder.merchantId,
+      paymentId: linkedOrder.paymentId
+    } : 'null');
+
     const merchantId = (record as PaymentRecord & { merchantId?: string }).merchantId
       || (linkedOrder as { merchantId?: string } | null)?.merchantId
       || 'default';
 
+    console.log('[回调调试] 最终商户ID:', merchantId);
+
     // 获取商户回调配置
     const { callbackUrl, apiKey } = await getMerchantCallbackConfig(merchantId);
+    console.log('[回调调试] 商户回调URL:', callbackUrl);
 
     if (!callbackUrl) {
       console.log('商户回调URL未配置, merchantId:', merchantId);

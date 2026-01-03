@@ -43,9 +43,29 @@
   "success": true,
   "orderId": "ORD1757825452250764",
   "amount": 10.00,
-  "merchantId": "cm1234567890"
+  "merchantId": "cm1234567890",
+  "expiresAt": "2025-01-13 19:40:38"
 }
 ```
+
+### 获取收款二维码 `GET /api/qrcode?type=alipay`
+
+创建订单后，调用此接口获取对应支付方式的收款二维码。
+
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| type | 是 | `alipay` 或 `wechat` |
+
+**响应**:
+```json
+{
+  "qrCode": "data:image/png;base64,iVBOR...",
+  "type": "alipay",
+  "id": "qr_123456"
+}
+```
+
+> **使用流程**: 创建订单 → 获取二维码 → 展示给用户扫码 → 轮询订单状态 → 支付成功
 
 ### 查询订单 `GET /api/order-status?orderId=xxx`
 
