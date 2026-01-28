@@ -48,6 +48,12 @@ export async function updatePaymentRecord(id: string, data: Partial<Payment>): P
     .where(eq(payments.id, id));
 }
 
+// 根据订单号(uid)查找支付记录
+export async function getPaymentByUid(uid: string): Promise<Payment | null> {
+  const [payment] = await db.select().from(payments).where(eq(payments.uid, uid));
+  return payment || null;
+}
+
 // 演示订单操作
 export async function saveDemoOrder(data: NewDemoOrder): Promise<DemoOrder> {
   const [order] = await db.insert(demoOrders).values(data).returning();
