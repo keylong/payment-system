@@ -75,11 +75,19 @@ export async function POST(request: NextRequest) {
     let finalUid = paymentInfo.uid;
     let merchantId: string | null = null;
 
-    // 如果UID是自动生成的或无效的，尝试使用智能匹配
-    if (finalUid.startsWith('PAY') || finalUid === '0' || !finalUid) {
+    // 自动生成/赞赏类/红包类/无效的UID，统一走金额智能匹配
+    const requiresMatching = paymentInfo.needsMatching ||
+      finalUid.startsWith('PAY') ||
+      finalUid.startsWith('AUTO') ||
+      finalUid === '0' ||
+      !finalUid;
+
+    if (requiresMatching) {
       if (matchResult.matched && matchResult.orderId) {
         finalUid = matchResult.orderId;
-        console.log(`智能匹配成功: 金额 ¥${paymentInfo.amount} -> 订单 ${finalUid}`);
+        console.log(
+          `智能匹配成功[${paymentInfo.paymentType}]: 金额 ¥${paymentInfo.amount} -> 订单 ${finalUid}`
+        );
 
         // 获取匹配订单的商户ID
         const { getDemoOrderById } = await import('@/lib/db-operations');
@@ -88,6 +96,10 @@ export async function POST(request: NextRequest) {
           merchantId = matchedOrder.merchantId;
           console.log(`获取订单商户ID: ${merchantId}`);
         }
+      } else if (paymentInfo.paymentType !== 'normal') {
+        console.log(
+          `${paymentInfo.paymentType} 类型支付未找到匹配订单，金额 ¥${paymentInfo.amount}，已记录待人工确认`
+        );
       }
     }
 
